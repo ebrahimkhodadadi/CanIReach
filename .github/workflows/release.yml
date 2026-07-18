@@ -100,13 +100,6 @@ jobs:
             }
             console.log('Sanitized version from ' + originalVersion + ' to ' + config.version);
             
-            if (!'${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}') {
-              if (config.plugins && config.plugins.updater) {
-                delete config.plugins.updater;
-                console.log('Deleted updater plugin config (unsigned build)');
-              }
-            }
-            
             fs.writeFileSync(path, JSON.stringify(config, null, 2), 'utf8');
           "
           
