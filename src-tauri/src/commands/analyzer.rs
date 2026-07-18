@@ -3,13 +3,22 @@ use crate::monitoring::analyzer::AnalyzerSnapshot;
 use tauri::{AppHandle, State};
 
 #[tauri::command]
-pub fn get_analyzer_snapshot(state: State<'_, AppState>, _dummy: Option<bool>) -> Result<AnalyzerSnapshot, String> {
+pub fn get_analyzer_snapshot(
+    state: State<'_, AppState>,
+    _dummy: Option<bool>,
+) -> Result<AnalyzerSnapshot, String> {
     Ok(state.analyzer_snapshot.lock().unwrap().clone())
 }
 
 #[tauri::command]
-pub fn start_analyzer(app: AppHandle, state: State<'_, AppState>, _dummy: Option<bool>) -> Result<(), String> {
-    state.analyzer_service.start(app, state.analyzer_snapshot.clone());
+pub fn start_analyzer(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    _dummy: Option<bool>,
+) -> Result<(), String> {
+    state
+        .analyzer_service
+        .start(app, state.analyzer_snapshot.clone());
     Ok(())
 }
 

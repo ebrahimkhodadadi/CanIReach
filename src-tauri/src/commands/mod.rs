@@ -7,21 +7,21 @@ pub mod settings;
 pub mod targets;
 pub mod traceroute;
 
+pub mod analyzer;
 pub mod block_page;
 pub mod operations;
 pub mod updater;
-pub mod analyzer;
 
-pub use updater::{get_update_state, check_for_updates, download_and_install_update};
-pub use analyzer::{get_analyzer_snapshot, start_analyzer, stop_analyzer, get_analyzer_samples};
+pub use analyzer::{get_analyzer_samples, get_analyzer_snapshot, start_analyzer, stop_analyzer};
+pub use updater::{check_for_updates, download_and_install_update, get_update_state};
 
 pub use groups::{
     create_target_group, delete_target_group, get_target_groups, update_target_group,
 };
 pub use history::{
     acknowledge_incident, delete_monitoring_history, get_history_summary, list_incidents,
-    query_monitoring_history, list_notifications, mark_notification_as_read,
-    mark_all_notifications_as_read,
+    list_notifications, mark_all_notifications_as_read, mark_notification_as_read,
+    query_monitoring_history,
 };
 pub use probes::{cancel_all_probes, cancel_probe, probe_all, probe_one};
 pub mod investigation;
@@ -45,7 +45,7 @@ pub use schedules::{
     resume_scheduled_monitoring, run_schedule_now, set_monitoring_schedule_enabled,
     update_monitoring_schedule,
 };
-pub use settings::{get_settings, save_settings, reset_application};
+pub use settings::{get_settings, reset_application, save_settings};
 pub use targets::{
     create_target, delete_target, duplicate_target, get_targets, set_target_enabled, update_target,
 };

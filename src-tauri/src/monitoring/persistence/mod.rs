@@ -22,9 +22,15 @@ impl DbManager {
     }
 
     fn recover_abandoned_batches(conn: &Connection) -> Result<(), rusqlite::Error> {
-        let count = conn.execute("UPDATE batches SET status = 'interrupted' WHERE status = 'running';", [])?;
+        let count = conn.execute(
+            "UPDATE batches SET status = 'interrupted' WHERE status = 'running';",
+            [],
+        )?;
         if count > 0 {
-            println!("INFO: Crash recovery completed. Marked {} abandoned batches as 'interrupted'.", count);
+            println!(
+                "INFO: Crash recovery completed. Marked {} abandoned batches as 'interrupted'.",
+                count
+            );
         }
         Ok(())
     }

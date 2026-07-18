@@ -1,7 +1,7 @@
-use tauri::{AppHandle, Emitter};
-use std::time::{Duration, Instant};
-use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
+use tauri::{AppHandle, Emitter};
 use tokio::time::sleep;
 
 #[derive(serde::Serialize, Clone, Debug)]
@@ -52,7 +52,7 @@ impl AnalyzerService {
 
             while active.load(Ordering::SeqCst) {
                 let start_time = Instant::now();
-                
+
                 let dns_start = Instant::now();
                 let dns_success = tokio::net::lookup_host("google.com:80").await.is_ok();
                 let dns_latency = if dns_success {
@@ -69,7 +69,11 @@ impl AnalyzerService {
                     1000.0
                 };
 
-                let current_latency = if conn_latency < 1000.0 { conn_latency } else { dns_latency };
+                let current_latency = if conn_latency < 1000.0 {
+                    conn_latency
+                } else {
+                    dns_latency
+                };
 
                 if current_latency < 1000.0 {
                     latency_history.push(current_latency);
@@ -84,20 +88,29 @@ impl AnalyzerService {
                     0.0
                 };
                 let jitter = if latency_history.len() > 1 {
-                    let variance = latency_history.iter().map(|l| (l - avg_latency).powi(2)).sum::<f32>() / latency_history.len() as f32;
+                    let variance = latency_history
+                        .iter()
+                        .map(|l| (l - avg_latency).powi(2))
+                        .sum::<f32>()
+                        / latency_history.len() as f32;
                     variance.sqrt()
                 } else {
                     0.0
                 };
 
-                let current_loss = if current_latency >= 1000.0 { 100.0 } else { 0.0 };
+                let current_loss = if current_latency >= 1000.0 {
+                    100.0
+                } else {
+                    0.0
+                };
                 let availability = if current_latency < 1000.0 { 100.0 } else { 0.0 };
 
                 let availability_sub = availability * 0.4;
                 let latency_sub = ((300.0 - current_latency.min(300.0)) / 300.0 * 100.0) * 0.3;
                 let dns_sub = if dns_success { 20.0 } else { 0.0 };
                 let jitter_sub = ((50.0 - jitter.min(50.0)) / 50.0 * 100.0) * 0.1;
-                let stability_score = (availability_sub + latency_sub + dns_sub + jitter_sub).clamp(0.0, 100.0);
+                let stability_score =
+                    (availability_sub + latency_sub + dns_sub + jitter_sub).clamp(0.0, 100.0);
 
                 let snapshot = AnalyzerSnapshot {
                     status: "running".to_string(),

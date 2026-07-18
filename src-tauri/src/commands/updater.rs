@@ -35,7 +35,10 @@ pub fn get_update_state(state: State<'_, AppState>) -> UpdateSnapshot {
 }
 
 #[tauri::command]
-pub async fn check_for_updates(app: AppHandle, state: State<'_, AppState>) -> Result<UpdateSnapshot, AppError> {
+pub async fn check_for_updates(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<UpdateSnapshot, AppError> {
     {
         let mut status = state.updater_status.lock().unwrap();
         status.status = UpdateStatus::Checking;
@@ -43,7 +46,9 @@ pub async fn check_for_updates(app: AppHandle, state: State<'_, AppState>) -> Re
         let _ = app.emit("update-state-changed", status.clone());
     }
 
-    let updater = app.updater().map_err(|e| AppError::Generic(e.to_string()))?;
+    let updater = app
+        .updater()
+        .map_err(|e| AppError::Generic(e.to_string()))?;
     match updater.check().await {
         Ok(Some(update)) => {
             let mut status = state.updater_status.lock().unwrap();
@@ -69,8 +74,13 @@ pub async fn check_for_updates(app: AppHandle, state: State<'_, AppState>) -> Re
 }
 
 #[tauri::command]
-pub async fn download_and_install_update(app: AppHandle, state: State<'_, AppState>) -> Result<(), AppError> {
-    let updater = app.updater().map_err(|e| AppError::Generic(e.to_string()))?;
+pub async fn download_and_install_update(
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
+    let updater = app
+        .updater()
+        .map_err(|e| AppError::Generic(e.to_string()))?;
     let update = match updater.check().await {
         Ok(Some(update)) => update,
         Ok(None) => return Err(AppError::Generic("No update available".to_string())),
@@ -88,17 +98,19 @@ pub async fn download_and_install_update(app: AppHandle, state: State<'_, AppSta
     let app_clone = app.clone();
 
     // Trigger download & install
-    let update_res = update.download_and_install(
-        move |chunk_len, total_len| {
-            if let Some(total) = total_len {
-                let progress = chunk_len as f32 / total as f32;
-                let mut status = updater_status.lock().unwrap();
-                status.download_progress = Some(progress);
-                let _ = app_clone.emit("update-state-changed", status.clone());
-            }
-        },
-        || {}
-    ).await;
+    let update_res = update
+        .download_and_install(
+            move |chunk_len, total_len| {
+                if let Some(total) = total_len {
+                    let progress = chunk_len as f32 / total as f32;
+                    let mut status = updater_status.lock().unwrap();
+                    status.download_progress = Some(progress);
+                    let _ = app_clone.emit("update-state-changed", status.clone());
+                }
+            },
+            || {},
+        )
+        .await;
 
     if let Err(e) = update_res {
         let mut status = state.updater_status.lock().unwrap();
@@ -112,7 +124,9 @@ pub async fn download_and_install_update(app: AppHandle, state: State<'_, AppSta
     // 1. Pause Scheduler Service
     let state_handle = app.state::<AppState>();
     if let Some(tx) = &*state_handle.scheduler_wake_tx.lock().unwrap() {
-        state_handle.monitoring_paused.store(true, std::sync::atomic::Ordering::SeqCst);
+        state_handle
+            .monitoring_paused
+            .store(true, std::sync::atomic::Ordering::SeqCst);
         let _ = tx.send(());
     }
 

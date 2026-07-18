@@ -362,7 +362,7 @@ jobs:
         run: node scripts/build-npm.cjs --binaries-dir raw-binaries
 
       - name: Publish NPM Packages
-        if: ${{ secrets.NPM_TOKEN != '' }}
+        if: secrets.NPM_TOKEN != ''
         run: node scripts/publish-npm.cjs
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -39,7 +39,7 @@ pub fn get_schedules_path() -> PathBuf {
 pub fn migrate_local_config_if_needed() {
     let local_dir = Path::new("config");
     let target_dir = get_app_data_dir();
-    
+
     if !local_dir.exists() || local_dir == target_dir {
         return;
     }
@@ -58,7 +58,10 @@ pub fn migrate_local_config_if_needed() {
         let dest = target_dir.join(file);
         if src.exists() && !dest.exists() {
             if let Err(e) = fs::copy(&src, &dest) {
-                eprintln!("WARN: Failed to migrate configuration file {:?}: {}", file, e);
+                eprintln!(
+                    "WARN: Failed to migrate configuration file {:?}: {}",
+                    file, e
+                );
             } else {
                 println!("INFO: Migrated configuration file {:?} to AppData.", file);
             }

@@ -59,7 +59,8 @@ impl TargetLoader {
             let has_new_defaults = targets.iter().any(|t| t.id == "google_homepage");
             if !has_new_defaults {
                 let defaults = Self::get_defaults();
-                let mut seen_ids: std::collections::HashSet<String> = targets.iter().map(|t| t.id.clone()).collect();
+                let mut seen_ids: std::collections::HashSet<String> =
+                    targets.iter().map(|t| t.id.clone()).collect();
                 for d in defaults {
                     if seen_ids.insert(d.id.clone()) {
                         targets.push(d);
@@ -166,208 +167,294 @@ impl TargetLoader {
             ("google_storage", "https://storage.googleapis.com", "Google"),
             ("google_download", "https://dl.google.com", "Google"),
             ("google_play_api", "https://play.googleapis.com", "Google"),
-            ("google_android_api", "https://android.googleapis.com", "Google"),
+            (
+                "google_android_api",
+                "https://android.googleapis.com",
+                "Google",
+            ),
             ("google_oauth", "https://oauth2.googleapis.com", "Google"),
             ("google_apis", "https://www.googleapis.com", "Google"),
-            ("google_firebase_api", "https://firebase.googleapis.com", "Google"),
-            ("google_firebase_web", "https://firebase.google.com", "Google"),
+            (
+                "google_firebase_api",
+                "https://firebase.googleapis.com",
+                "Google",
+            ),
+            (
+                "google_firebase_web",
+                "https://firebase.google.com",
+                "Google",
+            ),
             ("google_fcm", "https://fcm.googleapis.com", "Google"),
             ("google_maps_api", "https://maps.googleapis.com", "Google"),
             ("google_dns", "https://dns.google", "Google"),
-
             // Flutter & Dart
             ("flutter_homepage", "https://flutter.dev", "Flutter & Dart"),
             ("flutter_docs", "https://docs.flutter.dev", "Flutter & Dart"),
             ("flutter_api", "https://api.flutter.dev", "Flutter & Dart"),
-            ("flutter_infra", "https://storage.googleapis.com/flutter_infra_release", "Flutter & Dart"),
+            (
+                "flutter_infra",
+                "https://storage.googleapis.com/flutter_infra_release",
+                "Flutter & Dart",
+            ),
             ("pub_dev", "https://pub.dev", "Flutter & Dart"),
             ("dart_dev", "https://dart.dev", "Flutter & Dart"),
-
             // Android
-            ("android_download_sdk", "https://dl.google.com/android", "Android"),
-            ("android_download_dl", "https://dl.google.com/dl/android", "Android"),
+            (
+                "android_download_sdk",
+                "https://dl.google.com/android",
+                "Android",
+            ),
+            (
+                "android_download_dl",
+                "https://dl.google.com/dl/android",
+                "Android",
+            ),
             ("android_maven", "https://maven.google.com", "Android"),
-            ("android_developer", "https://developer.android.com", "Android"),
-
+            (
+                "android_developer",
+                "https://developer.android.com",
+                "Android",
+            ),
             // Apple
             ("apple_developer", "https://developer.apple.com", "Apple"),
-            ("apple_connect", "https://appstoreconnect.apple.com", "Apple"),
-            ("apple_connect_api", "https://api.appstoreconnect.apple.com", "Apple"),
-
+            (
+                "apple_connect",
+                "https://appstoreconnect.apple.com",
+                "Apple",
+            ),
+            (
+                "apple_connect_api",
+                "https://api.appstoreconnect.apple.com",
+                "Apple",
+            ),
             // GitHub
             ("github_homepage", "https://github.com", "GitHub"),
             ("github_api", "https://api.github.com", "GitHub"),
             ("github_raw", "https://raw.githubusercontent.com", "GitHub"),
-            ("github_objects", "https://objects.githubusercontent.com", "GitHub"),
-            ("github_user_content", "https://githubusercontent.com", "GitHub"),
+            (
+                "github_objects",
+                "https://objects.githubusercontent.com",
+                "GitHub",
+            ),
+            (
+                "github_user_content",
+                "https://githubusercontent.com",
+                "GitHub",
+            ),
             ("github_ghcr", "https://ghcr.io", "GitHub"),
-
             // GitLab
             ("gitlab_homepage", "https://gitlab.com", "GitLab"),
             ("gitlab_about", "https://about.gitlab.com", "GitLab"),
-
             // Bitbucket
             ("bitbucket_homepage", "https://bitbucket.org", "Bitbucket"),
             ("bitbucket_api", "https://api.bitbucket.org", "Bitbucket"),
-
             // Node.js
             ("nodejs_homepage", "https://nodejs.org", "Node.js"),
             ("npm_registry", "https://registry.npmjs.org", "Node.js"),
             ("npm_homepage", "https://www.npmjs.com", "Node.js"),
-
             // Java
             ("maven_central", "https://repo.maven.apache.org", "Java"),
             ("maven_search", "https://search.maven.org", "Java"),
             ("maven_repo1", "https://repo1.maven.org", "Java"),
-
             // Gradle
             ("gradle_services", "https://services.gradle.org", "Gradle"),
             ("gradle_plugins", "https://plugins.gradle.org", "Gradle"),
-
             // NuGet
             ("nuget_api", "https://api.nuget.org", "NuGet"),
             ("nuget_homepage", "https://www.nuget.org", "NuGet"),
-
             // .NET
             ("dotnet_homepage", "https://dotnet.microsoft.com", " .NET"),
-            ("dotnet_builds", "https://builds.dotnet.microsoft.com", " .NET"),
-
+            (
+                "dotnet_builds",
+                "https://builds.dotnet.microsoft.com",
+                " .NET",
+            ),
             // Python
             ("pypi_registry", "https://pypi.org", "Python"),
-            ("python_hosted_files", "https://files.pythonhosted.org", "Python"),
-
+            (
+                "python_hosted_files",
+                "https://files.pythonhosted.org",
+                "Python",
+            ),
             // Rust
             ("crates_io_registry", "https://crates.io", "Rust"),
             ("crates_io_static", "https://static.crates.io", "Rust"),
             ("rust_docs", "https://doc.rust-lang.org", "Rust"),
-
             // Go
             ("go_proxy", "https://proxy.golang.org", "Go"),
             ("go_sum", "https://sum.golang.org", "Go"),
             ("go_pkg", "https://pkg.go.dev", "Go"),
-
             // PHP
             ("packagist_registry", "https://packagist.org", "PHP"),
             ("composer_homepage", "https://getcomposer.org", "PHP"),
-
             // Ruby
             ("rubygems_registry", "https://rubygems.org", "Ruby"),
-
             // Docker
             ("docker_hub", "https://hub.docker.com", "Docker"),
             ("docker_registry", "https://registry-1.docker.io", "Docker"),
             ("docker_auth", "https://auth.docker.io", "Docker"),
-            ("docker_production", "https://production.cloudflare.docker.com", "Docker"),
-
+            (
+                "docker_production",
+                "https://production.cloudflare.docker.com",
+                "Docker",
+            ),
             // Kubernetes
             ("kubernetes_homepage", "https://kubernetes.io", "Kubernetes"),
-            ("kubernetes_registry", "https://registry.k8s.io", "Kubernetes"),
-
+            (
+                "kubernetes_registry",
+                "https://registry.k8s.io",
+                "Kubernetes",
+            ),
             // HashiCorp
-            ("hashicorp_releases", "https://releases.hashicorp.com", "HashiCorp"),
-            ("hashicorp_registry", "https://registry.terraform.io", "HashiCorp"),
-
+            (
+                "hashicorp_releases",
+                "https://releases.hashicorp.com",
+                "HashiCorp",
+            ),
+            (
+                "hashicorp_registry",
+                "https://registry.terraform.io",
+                "HashiCorp",
+            ),
             // Cloudflare
             ("cloudflare_dns_ip", "https://1.1.1.1", "Cloudflare"),
-            ("cloudflare_dns_name", "https://one.one.one.one", "Cloudflare"),
-            ("cloudflare_developers", "https://developers.cloudflare.com", "Cloudflare"),
+            (
+                "cloudflare_dns_name",
+                "https://one.one.one.one",
+                "Cloudflare",
+            ),
+            (
+                "cloudflare_developers",
+                "https://developers.cloudflare.com",
+                "Cloudflare",
+            ),
             ("cloudflare_api", "https://api.cloudflare.com", "Cloudflare"),
-
             // AWS
             ("aws_homepage", "https://aws.amazon.com", "AWS"),
             ("aws_docs", "https://docs.aws.amazon.com", "AWS"),
-
             // Azure
             ("azure_homepage", "https://azure.microsoft.com", "Azure"),
             ("azure_management", "https://management.azure.com", "Azure"),
-
             // Google Cloud
             ("gcp_homepage", "https://cloud.google.com", "Google Cloud"),
-            ("gcp_console", "https://console.cloud.google.com", "Google Cloud"),
-
+            (
+                "gcp_console",
+                "https://console.cloud.google.com",
+                "Google Cloud",
+            ),
             // Vercel
             ("vercel_homepage", "https://vercel.com", "Vercel"),
             ("vercel_api", "https://api.vercel.com", "Vercel"),
-
             // Netlify
             ("netlify_homepage", "https://www.netlify.com", "Netlify"),
             ("netlify_api", "https://api.netlify.com", "Netlify"),
-
             // Railway
             ("railway_homepage", "https://railway.com", "Railway"),
             ("railway_api", "https://backboard.railway.app", "Railway"),
-
             // Render
             ("render_homepage", "https://render.com", "Render"),
-
             // Supabase
             ("supabase_homepage", "https://supabase.com", "Supabase"),
             ("supabase_api", "https://api.supabase.com", "Supabase"),
-
             // Firebase
-            ("firebase_console", "https://firebase.google.com", "Firebase"),
-            ("firebase_apis", "https://firebase.googleapis.com", "Firebase"),
-
+            (
+                "firebase_console",
+                "https://firebase.google.com",
+                "Firebase",
+            ),
+            (
+                "firebase_apis",
+                "https://firebase.googleapis.com",
+                "Firebase",
+            ),
             // MongoDB
             ("mongodb_homepage", "https://www.mongodb.com", "MongoDB"),
             ("mongodb_cloud", "https://cloud.mongodb.com", "MongoDB"),
-
             // Redis
             ("redis_homepage", "https://redis.io", "Redis"),
-
             // OpenAI
             ("openai_api", "https://api.openai.com", "OpenAI"),
             ("openai_chatgpt", "https://chatgpt.com", "OpenAI"),
             ("openai_platform", "https://platform.openai.com", "OpenAI"),
-
             // Anthropic
             ("anthropic_api", "https://api.anthropic.com", "Anthropic"),
-            ("anthropic_console", "https://console.anthropic.com", "Anthropic"),
-
+            (
+                "anthropic_console",
+                "https://console.anthropic.com",
+                "Anthropic",
+            ),
             // Google AI
-            ("google_ai_language", "https://generativelanguage.googleapis.com", "Google AI"),
-            ("google_ai_studio", "https://aistudio.google.com", "Google AI"),
-
+            (
+                "google_ai_language",
+                "https://generativelanguage.googleapis.com",
+                "Google AI",
+            ),
+            (
+                "google_ai_studio",
+                "https://aistudio.google.com",
+                "Google AI",
+            ),
             // xAI
             ("xai_api", "https://api.x.ai", "xAI"),
-
             // Hugging Face
-            ("huggingface_homepage", "https://huggingface.co", "Hugging Face"),
-            ("huggingface_api", "https://api-inference.huggingface.co", "Hugging Face"),
-
+            (
+                "huggingface_homepage",
+                "https://huggingface.co",
+                "Hugging Face",
+            ),
+            (
+                "huggingface_api",
+                "https://api-inference.huggingface.co",
+                "Hugging Face",
+            ),
             // Discord
             ("discord_homepage", "https://discord.com", "Discord"),
             ("discord_invite", "https://discord.gg", "Discord"),
-
             // Telegram
             ("telegram_api", "https://api.telegram.org", "Telegram"),
             ("telegram_core", "https://core.telegram.org", "Telegram"),
-
             // Slack
             ("slack_homepage", "https://slack.com", "Slack"),
             ("slack_api", "https://api.slack.com", "Slack"),
-
             // Figma
             ("figma_homepage", "https://www.figma.com", "Figma"),
             ("figma_api", "https://api.figma.com", "Figma"),
-
             // JetBrains
-            ("jetbrains_plugins", "https://plugins.jetbrains.com", "JetBrains"),
-            ("jetbrains_account", "https://account.jetbrains.com", "JetBrains"),
-
+            (
+                "jetbrains_plugins",
+                "https://plugins.jetbrains.com",
+                "JetBrains",
+            ),
+            (
+                "jetbrains_account",
+                "https://account.jetbrains.com",
+                "JetBrains",
+            ),
             // Visual Studio Code
-            ("vscode_marketplace", "https://marketplace.visualstudio.com", "Visual Studio Code"),
-            ("vscode_update", "https://update.code.visualstudio.com", "Visual Studio Code"),
-
+            (
+                "vscode_marketplace",
+                "https://marketplace.visualstudio.com",
+                "Visual Studio Code",
+            ),
+            (
+                "vscode_update",
+                "https://update.code.visualstudio.com",
+                "Visual Studio Code",
+            ),
             // JetBrains Marketplace
-            ("jetbrains_marketplace", "https://plugins.jetbrains.com", "JetBrains Marketplace"),
-
+            (
+                "jetbrains_marketplace",
+                "https://plugins.jetbrains.com",
+                "JetBrains Marketplace",
+            ),
             // Homebrew
             ("brew_formulae", "https://formulae.brew.sh", "Homebrew"),
-
             // Chocolatey
-            ("chocolatey_community", "https://community.chocolatey.org", "Chocolatey"),
-
+            (
+                "chocolatey_community",
+                "https://community.chocolatey.org",
+                "Chocolatey",
+            ),
             // Winget
             ("winget_cdn", "https://cdn.winget.microsoft.com", "Winget"),
         ];

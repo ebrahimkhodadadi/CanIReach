@@ -93,7 +93,7 @@ pub async fn save_settings(
 #[tauri::command]
 pub fn reset_application(app: tauri::AppHandle) {
     let data_dir = crate::config::get_app_data_dir();
-    
+
     // Delete files in AppData directory
     let files_to_delete = vec![
         "settings.json",

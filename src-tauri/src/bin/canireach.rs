@@ -12,9 +12,9 @@ use zip::ZipWriter;
 use canireach_core::config::ProbeConfig;
 use canireach_core::{FailureKind, FailureStage, ProbeEvent, ProbeResult, ProbeStatus, Target};
 use tauri_app_lib::config::{
-    get_app_data_dir, get_db_path, get_groups_path, get_profiles_path,
-    get_schedules_path, get_settings_path, get_targets_path, GroupsLoader,
-    ProfilesLoader, SchedulesLoader, TargetLoader,
+    get_app_data_dir, get_db_path, get_groups_path, get_profiles_path, get_schedules_path,
+    get_settings_path, get_targets_path, GroupsLoader, ProfilesLoader, SchedulesLoader,
+    TargetLoader,
 };
 use tauri_app_lib::monitoring::persistence::DbManager;
 use tauri_app_lib::monitoring::scheduler::{SchedulerLock, SchedulerService};
@@ -259,13 +259,34 @@ struct ConfigurationExport {
 async fn main() {
     let mut raw_args: Vec<String> = std::env::args().collect();
     let subcommands = [
-        "doctor", "test", "preflight", "trace", "traceroute", "config", "backup", "monitor", "history", "incidents", "completion", "help"
+        "doctor",
+        "test",
+        "preflight",
+        "trace",
+        "traceroute",
+        "config",
+        "backup",
+        "monitor",
+        "history",
+        "incidents",
+        "completion",
+        "help",
     ];
     let flags_with_values = [
-        "--format", "-f", "--color", "--timeout", "--retries", "--proxy", "--concurrency", "--config", "--network"
+        "--format",
+        "-f",
+        "--color",
+        "--timeout",
+        "--retries",
+        "--proxy",
+        "--concurrency",
+        "--config",
+        "--network",
     ];
 
-    let has_subcommand = raw_args.iter().any(|arg| subcommands.contains(&arg.as_str()));
+    let has_subcommand = raw_args
+        .iter()
+        .any(|arg| subcommands.contains(&arg.as_str()));
 
     if !has_subcommand {
         let mut insert_idx = None;
@@ -381,13 +402,16 @@ fn parse_duration_to_ms(s: &str) -> Result<u64, String> {
 
 fn map_to_cli_json(res: &ProbeResult) -> CliJsonResult {
     let mut stages = Vec::new();
-    
+
     if let Some(ref dns) = res.dns {
         stages.push(CliJsonStage {
             name: "dns".to_string(),
             status: dns.status.clone(),
             duration_ms: dns.duration_ms,
-            message: dns.metadata.as_ref().and_then(|m| m.get("outcome").cloned()),
+            message: dns
+                .metadata
+                .as_ref()
+                .and_then(|m| m.get("outcome").cloned()),
             error: dns.error.as_ref().map(|e| e.user_message.clone()),
         });
     }
@@ -396,7 +420,10 @@ fn map_to_cli_json(res: &ProbeResult) -> CliJsonResult {
             name: "tcp".to_string(),
             status: tcp.status.clone(),
             duration_ms: tcp.duration_ms,
-            message: tcp.metadata.as_ref().and_then(|m| m.get("outcome").cloned()),
+            message: tcp
+                .metadata
+                .as_ref()
+                .and_then(|m| m.get("outcome").cloned()),
             error: tcp.error.as_ref().map(|e| e.user_message.clone()),
         });
     }
@@ -405,7 +432,10 @@ fn map_to_cli_json(res: &ProbeResult) -> CliJsonResult {
             name: "tls".to_string(),
             status: tls.status.clone(),
             duration_ms: tls.duration_ms,
-            message: tls.metadata.as_ref().and_then(|m| m.get("tls_version").cloned()),
+            message: tls
+                .metadata
+                .as_ref()
+                .and_then(|m| m.get("tls_version").cloned()),
             error: tls.error.as_ref().map(|e| e.user_message.clone()),
         });
     }
@@ -414,14 +444,19 @@ fn map_to_cli_json(res: &ProbeResult) -> CliJsonResult {
             name: "http".to_string(),
             status: http.status.clone(),
             duration_ms: http.duration_ms,
-            message: http.metadata.as_ref().and_then(|m| m.get("negotiated_version").cloned()),
+            message: http
+                .metadata
+                .as_ref()
+                .and_then(|m| m.get("negotiated_version").cloned()),
             error: http.error.as_ref().map(|e| e.user_message.clone()),
         });
     }
 
     let http_info = res.http_status.map(|s| CliJsonHttp {
         status: s,
-        version: res.http.as_ref()
+        version: res
+            .http
+            .as_ref()
             .and_then(|h| h.metadata.as_ref())
             .and_then(|m| m.get("negotiated_version").cloned()),
     });
@@ -445,7 +480,11 @@ fn map_to_cli_json(res: &ProbeResult) -> CliJsonResult {
         schema_version: "1".to_string(),
         command: "test".to_string(),
         target: redact_credentials(&res.target_url),
-        normalized_target: redact_credentials(&res.final_url.clone().unwrap_or_else(|| res.target_url.clone())),
+        normalized_target: redact_credentials(
+            &res.final_url
+                .clone()
+                .unwrap_or_else(|| res.target_url.clone()),
+        ),
         status: cli_status,
         total_elapsed_ms: res.latency_ms,
         stages,
@@ -541,7 +580,9 @@ async fn run_test(
             };
             let inherited_target = {
                 let targets_list = TargetLoader::load().unwrap_or_default();
-                targets_list.into_iter().find(|t| t.url == clean_url || t.name == clean_url || t.url == url)
+                targets_list
+                    .into_iter()
+                    .find(|t| t.url == clean_url || t.name == clean_url || t.url == url)
             };
             if let Some(t) = inherited_target {
                 targets_to_test.push(t);
@@ -568,12 +609,18 @@ async fn run_test(
         if let Some(t) = loaded.into_iter().find(|t| t.id == target_id) {
             targets_to_test.push(t);
         } else {
-            eprintln!("Error: Target ID '{}' not found in configuration", target_id);
+            eprintln!(
+                "Error: Target ID '{}' not found in configuration",
+                target_id
+            );
             return 2;
         }
     } else if let Some(group) = group_opt {
         let loaded = TargetLoader::load().unwrap_or_default();
-        let matched: Vec<_> = loaded.into_iter().filter(|t| t.group_ids.contains(&group)).collect();
+        let matched: Vec<_> = loaded
+            .into_iter()
+            .filter(|t| t.group_ids.contains(&group))
+            .collect();
         if matched.is_empty() {
             eprintln!("Error: No targets found in group '{}'", group);
             return 2;
@@ -620,7 +667,12 @@ async fn run_test(
 
     let is_human = cli.format == "human";
     if is_human && !cli.quiet && targets_to_test.len() > 1 {
-        println!("{}", console::style("CanIReach · Connectivity Test").bold().underlined());
+        println!(
+            "{}",
+            console::style("CanIReach · Connectivity Test")
+                .bold()
+                .underlined()
+        );
         println!();
     }
 
@@ -628,13 +680,21 @@ async fn run_test(
 
     if cli.continuous {
         if is_human && !cli.quiet {
-            println!("{}", console::style("CanIReach · Live Continuous Diagnostics (Press Ctrl+C to stop)").cyan().bold());
-            println!("{}", console::style("────────────────────────────────────────────────────────").dim());
+            println!(
+                "{}",
+                console::style("CanIReach · Live Continuous Diagnostics (Press Ctrl+C to stop)")
+                    .cyan()
+                    .bold()
+            );
+            println!(
+                "{}",
+                console::style("────────────────────────────────────────────────────────").dim()
+            );
         }
 
         let ctrlc_cancel = Arc::new(AtomicBool::new(false));
         let cancel_clone = ctrlc_cancel.clone();
-        
+
         let cancel_spawn = cancel_clone.clone();
         tokio::spawn(async move {
             let _ = tokio::signal::ctrl_c().await;
@@ -651,9 +711,11 @@ async fn run_test(
                 if cancel_clone.load(std::sync::atomic::Ordering::SeqCst) {
                     break;
                 }
-                
-                let res = engine.probe_one_with_events(target, cancel_clone.clone(), |_| {}).await;
-                
+
+                let res = engine
+                    .probe_one_with_events(target, cancel_clone.clone(), |_| {})
+                    .await;
+
                 if cli.quiet {
                     if cli.format == "json" {
                         let mapped = map_to_cli_json(&res);
@@ -676,7 +738,7 @@ async fn run_test(
                     } else {
                         console::style(if cli.no_unicode { "✘" } else { "✘" }).red()
                     };
-                    
+
                     let rtt_styled = if res.latency_ms < 200 {
                         console::style(format!("{}ms", res.latency_ms)).green()
                     } else if res.latency_ms < 800 {
@@ -685,12 +747,35 @@ async fn run_test(
                         console::style(format!("{}ms", res.latency_ms)).red()
                     };
 
-                    let http_status_str = res.http_status.map(|s| format!("HTTP {}", s)).unwrap_or_else(|| "HTTP —".to_string());
-                    
-                    let dns_time = res.dns.as_ref().and_then(|d| d.duration_ms).map(|d| format!("dns={}ms", d)).unwrap_or_else(|| "dns=—".to_string());
-                    let tcp_time = res.tcp.as_ref().and_then(|t| t.duration_ms).map(|t| format!("tcp={}ms", t)).unwrap_or_else(|| "tcp=—".to_string());
-                    let tls_time = res.tls.as_ref().and_then(|t| t.duration_ms).map(|t| format!("tls={}ms", t)).unwrap_or_else(|| "tls=—".to_string());
-                    let http_time = res.http.as_ref().and_then(|h| h.duration_ms).map(|h| format!("http={}ms", h)).unwrap_or_else(|| "http=—".to_string());
+                    let http_status_str = res
+                        .http_status
+                        .map(|s| format!("HTTP {}", s))
+                        .unwrap_or_else(|| "HTTP —".to_string());
+
+                    let dns_time = res
+                        .dns
+                        .as_ref()
+                        .and_then(|d| d.duration_ms)
+                        .map(|d| format!("dns={}ms", d))
+                        .unwrap_or_else(|| "dns=—".to_string());
+                    let tcp_time = res
+                        .tcp
+                        .as_ref()
+                        .and_then(|t| t.duration_ms)
+                        .map(|t| format!("tcp={}ms", t))
+                        .unwrap_or_else(|| "tcp=—".to_string());
+                    let tls_time = res
+                        .tls
+                        .as_ref()
+                        .and_then(|t| t.duration_ms)
+                        .map(|t| format!("tls={}ms", t))
+                        .unwrap_or_else(|| "tls=—".to_string());
+                    let http_time = res
+                        .http
+                        .as_ref()
+                        .and_then(|h| h.duration_ms)
+                        .map(|h| format!("http={}ms", h))
+                        .unwrap_or_else(|| "http=—".to_string());
 
                     let target_url_redacted = redact_credentials(&target.url);
                     println!(
@@ -723,97 +808,139 @@ async fn run_test(
     if targets_to_test.len() == 1 {
         let target = &targets_to_test[0];
         let target_url_redacted = redact_credentials(&target.url);
-        
+
         if is_human && !cli.quiet {
-            println!("{}", console::style("CanIReach · Connection Diagnostics").cyan().bold());
-            println!("{}", console::style("────────────────────────────────────────────────────────").dim());
-            println!("  {:<12} {}", console::style("Endpoint:").dim(), console::style(&target_url_redacted).bold());
+            println!(
+                "{}",
+                console::style("CanIReach · Connection Diagnostics")
+                    .cyan()
+                    .bold()
+            );
+            println!(
+                "{}",
+                console::style("────────────────────────────────────────────────────────").dim()
+            );
+            println!(
+                "  {:<12} {}",
+                console::style("Endpoint:").dim(),
+                console::style(&target_url_redacted).bold()
+            );
             if let Some(ref cat) = target.category {
                 println!("  {:<12} {}", console::style("Category:").dim(), cat);
             }
             println!();
         }
 
-        let spinner = if is_human && !cli.quiet && !cli.no_progress && console::Term::stdout().is_term() {
-            let pb = ProgressBar::new_spinner();
-            pb.set_style(
-                ProgressStyle::default_spinner()
-                    .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
-                    .template("{spinner:.green} {msg}")
-                    .expect("Valid template")
-            );
-            pb.set_message("Initiating connection diagnostics...");
-            pb.enable_steady_tick(Duration::from_millis(80));
-            Some(pb)
-        } else {
-            None
-        };
+        let spinner =
+            if is_human && !cli.quiet && !cli.no_progress && console::Term::stdout().is_term() {
+                let pb = ProgressBar::new_spinner();
+                pb.set_style(
+                    ProgressStyle::default_spinner()
+                        .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
+                        .template("{spinner:.green} {msg}")
+                        .expect("Valid template"),
+                );
+                pb.set_message("Initiating connection diagnostics...");
+                pb.enable_steady_tick(Duration::from_millis(80));
+                Some(pb)
+            } else {
+                None
+            };
 
         let is_quiet = cli.quiet;
         let no_unicode = cli.no_unicode;
         let spinner_clone = spinner.clone();
 
-        let res = engine.probe_one_with_events(target, Arc::new(AtomicBool::new(false)), move |event| {
-            if is_quiet || !is_human { return; }
-            match event {
-                ProbeEvent::StageStarted { stage, .. } => {
-                    if let Some(ref pb) = spinner_clone {
-                        pb.set_message(format!("{} stage: {}", console::style("»").cyan().bold(), console::style(stage.to_uppercase()).bold()));
-                    }
+        let res = engine
+            .probe_one_with_events(target, Arc::new(AtomicBool::new(false)), move |event| {
+                if is_quiet || !is_human {
+                    return;
                 }
-                ProbeEvent::StageCompleted { stage, result: stage_res, .. } => {
-                    let is_ok = stage_res.status == "passed";
-                    let icon = if is_ok {
-                        if no_unicode { "[OK] " } else { "✔ " }
-                    } else {
-                        if no_unicode { "[FAIL] " } else { "✘ " }
-                    };
-                    let icon_styled = if is_ok {
-                        console::style(icon).green()
-                    } else {
-                        console::style(icon).red()
-                    };
-                    let duration_styled = stage_res.duration_ms.map(|d| {
-                        if d < 150 {
-                            console::style(format!("{} ms", d)).green().to_string()
-                        } else if d < 500 {
-                            console::style(format!("{} ms", d)).yellow().to_string()
+                match event {
+                    ProbeEvent::StageStarted { stage, .. } => {
+                        if let Some(ref pb) = spinner_clone {
+                            pb.set_message(format!(
+                                "{} stage: {}",
+                                console::style("»").cyan().bold(),
+                                console::style(stage.to_uppercase()).bold()
+                            ));
+                        }
+                    }
+                    ProbeEvent::StageCompleted {
+                        stage,
+                        result: stage_res,
+                        ..
+                    } => {
+                        let is_ok = stage_res.status == "passed";
+                        let icon = if is_ok {
+                            if no_unicode {
+                                "[OK] "
+                            } else {
+                                "✔ "
+                            }
                         } else {
-                            console::style(format!("{} ms", d)).red().to_string()
+                            if no_unicode {
+                                "[FAIL] "
+                            } else {
+                                "✘ "
+                            }
+                        };
+                        let icon_styled = if is_ok {
+                            console::style(icon).green()
+                        } else {
+                            console::style(icon).red()
+                        };
+                        let duration_styled = stage_res
+                            .duration_ms
+                            .map(|d| {
+                                if d < 150 {
+                                    console::style(format!("{} ms", d)).green().to_string()
+                                } else if d < 500 {
+                                    console::style(format!("{} ms", d)).yellow().to_string()
+                                } else {
+                                    console::style(format!("{} ms", d)).red().to_string()
+                                }
+                            })
+                            .unwrap_or_else(|| "—".to_string());
+                        let mut extra_info = String::new();
+
+                        if let Some(ref meta) = stage_res.metadata {
+                            if stage == "dns" {
+                                if let Some(ips) = meta.get("resolved_ips") {
+                                    extra_info = format!("resolved: {}", ips);
+                                }
+                            } else if stage == "tcp" {
+                                if let Some(addr) = meta.get("connected_address") {
+                                    extra_info = format!("endpoint: {}", addr);
+                                }
+                            } else if stage == "tls" {
+                                let ver = meta.get("tls_version").cloned().unwrap_or_default();
+                                let alpn = meta.get("alpn_protocol").cloned().unwrap_or_default();
+                                extra_info = format!("protocol: {} ({})", ver, alpn);
+                            } else if stage == "http" {
+                                if let Some(status) = meta.get("status_code") {
+                                    extra_info = format!("status: {}", status);
+                                }
+                            }
                         }
-                    }).unwrap_or_else(|| "—".to_string());
-                    let mut extra_info = String::new();
-                    
-                    if let Some(ref meta) = stage_res.metadata {
-                        if stage == "dns" {
-                            if let Some(ips) = meta.get("resolved_ips") {
-                                extra_info = format!("resolved: {}", ips);
-                            }
-                        } else if stage == "tcp" {
-                            if let Some(addr) = meta.get("connected_address") {
-                                extra_info = format!("endpoint: {}", addr);
-                            }
-                        } else if stage == "tls" {
-                            let ver = meta.get("tls_version").cloned().unwrap_or_default();
-                            let alpn = meta.get("alpn_protocol").cloned().unwrap_or_default();
-                            extra_info = format!("protocol: {} ({})", ver, alpn);
-                        } else if stage == "http" {
-                            if let Some(status) = meta.get("status_code") {
-                                extra_info = format!("status: {}", status);
-                            }
+
+                        let line = format!(
+                            "  {}  {:<6}  {:<25} {}",
+                            icon_styled,
+                            stage.to_uppercase(),
+                            duration_styled,
+                            console::style(extra_info).dim()
+                        );
+                        if let Some(ref pb) = spinner_clone {
+                            pb.println(line);
+                        } else {
+                            println!("{}", line);
                         }
                     }
-                    
-                    let line = format!("  {}  {:<6}  {:<25} {}", icon_styled, stage.to_uppercase(), duration_styled, console::style(extra_info).dim());
-                    if let Some(ref pb) = spinner_clone {
-                        pb.println(line);
-                    } else {
-                        println!("{}", line);
-                    }
+                    _ => {}
                 }
-                _ => {}
-            }
-        }).await;
+            })
+            .await;
 
         if let Some(pb) = spinner {
             pb.finish_and_clear();
@@ -821,7 +948,7 @@ async fn run_test(
 
         if is_human && !cli.quiet {
             println!();
-            
+
             let status_str = if res.overall_status == "up" {
                 console::style("REACHABLE").green().bold()
             } else if res.overall_status == "degraded" {
@@ -829,7 +956,7 @@ async fn run_test(
             } else {
                 console::style("UNREACHABLE").red().bold()
             };
-            
+
             let total_time_styled = if res.latency_ms < 200 {
                 console::style(format!("{} ms", res.latency_ms)).green()
             } else if res.latency_ms < 800 {
@@ -837,9 +964,12 @@ async fn run_test(
             } else {
                 console::style(format!("{} ms", res.latency_ms)).red()
             };
-            
-            let http_status_str = res.http_status.map(|s| s.to_string()).unwrap_or_else(|| "—".to_string());
-            
+
+            let http_status_str = res
+                .http_status
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| "—".to_string());
+
             let corner_top_left = if no_unicode { "+" } else { "┌" };
             let corner_top_right = if no_unicode { "+" } else { "┐" };
             let corner_bottom_left = if no_unicode { "+" } else { "└" };
@@ -847,39 +977,87 @@ async fn run_test(
             let border_horizontal = if no_unicode { "-" } else { "─" };
             let border_vertical = if no_unicode { "|" } else { "│" };
 
-            println!("  {}{}{}", corner_top_left, border_horizontal.repeat(48), corner_top_right);
-            println!("  {}  {:<15} {}", border_vertical, console::style("Verdict:").dim(), status_str);
-            println!("  {}  {:<15} {}", border_vertical, console::style("Response time:").dim(), total_time_styled);
+            println!(
+                "  {}{}{}",
+                corner_top_left,
+                border_horizontal.repeat(48),
+                corner_top_right
+            );
+            println!(
+                "  {}  {:<15} {}",
+                border_vertical,
+                console::style("Verdict:").dim(),
+                status_str
+            );
+            println!(
+                "  {}  {:<15} {}",
+                border_vertical,
+                console::style("Response time:").dim(),
+                total_time_styled
+            );
             if res.http_status.is_some() {
-                println!("  {}  {:<15} {}", border_vertical, console::style("HTTP status:").dim(), http_status_str);
+                println!(
+                    "  {}  {:<15} {}",
+                    border_vertical,
+                    console::style("HTTP status:").dim(),
+                    http_status_str
+                );
             }
-            println!("  {}{}{}", corner_bottom_left, border_horizontal.repeat(48), corner_bottom_right);
+            println!(
+                "  {}{}{}",
+                corner_bottom_left,
+                border_horizontal.repeat(48),
+                corner_bottom_right
+            );
 
             if let Some(ref failure) = res.failure {
                 println!();
-                println!("  {}", console::style("Diagnostic Failure Details:").red().bold());
-                println!("    {:<12} {:?}", console::style("Stage:").dim(), failure.stage);
-                println!("    {:<12} {:?}", console::style("Kind:").dim(), failure.kind);
-                println!("    {:<12} {}", console::style("Message:").dim(), failure.user_message);
+                println!(
+                    "  {}",
+                    console::style("Diagnostic Failure Details:").red().bold()
+                );
+                println!(
+                    "    {:<12} {:?}",
+                    console::style("Stage:").dim(),
+                    failure.stage
+                );
+                println!(
+                    "    {:<12} {:?}",
+                    console::style("Kind:").dim(),
+                    failure.kind
+                );
+                println!(
+                    "    {:<12} {}",
+                    console::style("Message:").dim(),
+                    failure.user_message
+                );
                 if let Some(ref tech) = failure.technical_message {
                     println!("    {:<12} {}", console::style("Technical:").dim(), tech);
                 }
                 let hint = get_diagnostic_hint(failure.stage, failure.kind);
-                println!("    {:<12} {}", console::style("Hint:").dim(), console::style(hint).yellow());
+                println!(
+                    "    {:<12} {}",
+                    console::style("Hint:").dim(),
+                    console::style(hint).yellow()
+                );
             }
-            println!("{}", console::style("────────────────────────────────────────────────────────").dim());
+            println!(
+                "{}",
+                console::style("────────────────────────────────────────────────────────").dim()
+            );
         }
         results.push(res);
     } else {
         // Concurrently run multiple targets
         let semaphore = Arc::new(tokio::sync::Semaphore::new(cli.concurrency));
         let engine_arc = Arc::new(engine);
-        
-        let multi_bar = if is_human && !cli.quiet && !cli.no_progress && console::Term::stdout().is_term() {
-            Some(Arc::new(MultiProgress::new()))
-        } else {
-            None
-        };
+
+        let multi_bar =
+            if is_human && !cli.quiet && !cli.no_progress && console::Term::stdout().is_term() {
+                Some(Arc::new(MultiProgress::new()))
+            } else {
+                None
+            };
 
         let mut tasks = Vec::new();
         for target in targets_to_test {
@@ -893,14 +1071,14 @@ async fn run_test(
                 let _permit = sem.acquire().await;
                 let target_url_redacted = redact_credentials(&target.url);
                 let target_url_redacted_for_event = target_url_redacted.clone();
-                
+
                 let pb = if let Some(ref mb) = m_bar {
                     let p = mb.add(ProgressBar::new_spinner());
                     p.set_style(
                         ProgressStyle::default_spinner()
                             .tick_chars("⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏")
                             .template("{spinner:.green} {msg}")
-                            .expect("Valid template")
+                            .expect("Valid template"),
                     );
                     p.set_message(format!("Testing {}...", target_url_redacted));
                     p.enable_steady_tick(Duration::from_millis(80));
@@ -910,24 +1088,51 @@ async fn run_test(
                 };
 
                 let pb_clone = pb.clone();
-                let res = eng.probe_one_with_events(&target, Arc::new(AtomicBool::new(false)), move |event| {
-                    if is_quiet { return; }
-                    if let ProbeEvent::StageStarted { stage, .. } = event {
-                        if let Some(ref p) = pb_clone {
-                            p.set_message(format!("{} : {}", target_url_redacted_for_event, stage.to_uppercase()));
-                        }
-                    }
-                }).await;
+                let res = eng
+                    .probe_one_with_events(
+                        &target,
+                        Arc::new(AtomicBool::new(false)),
+                        move |event| {
+                            if is_quiet {
+                                return;
+                            }
+                            if let ProbeEvent::StageStarted { stage, .. } = event {
+                                if let Some(ref p) = pb_clone {
+                                    p.set_message(format!(
+                                        "{} : {}",
+                                        target_url_redacted_for_event,
+                                        stage.to_uppercase()
+                                    ));
+                                }
+                            }
+                        },
+                    )
+                    .await;
 
                 if let Some(ref p) = pb {
                     let status_icon = if res.overall_status == "up" {
-                        if no_unicode { "[OK] " } else { "✓ " }
+                        if no_unicode {
+                            "[OK] "
+                        } else {
+                            "✓ "
+                        }
                     } else if res.overall_status == "degraded" {
-                        if no_unicode { "[WARN] " } else { "⚠ " }
+                        if no_unicode {
+                            "[WARN] "
+                        } else {
+                            "⚠ "
+                        }
                     } else {
-                        if no_unicode { "[FAIL] " } else { "✗ " }
+                        if no_unicode {
+                            "[FAIL] "
+                        } else {
+                            "✗ "
+                        }
                     };
-                    p.finish_with_message(format!("{}{:<35} ({} ms)", status_icon, target_url_redacted, res.latency_ms));
+                    p.finish_with_message(format!(
+                        "{}{:<35} ({} ms)",
+                        status_icon, target_url_redacted, res.latency_ms
+                    ));
                 }
                 res
             });
@@ -942,10 +1147,18 @@ async fn run_test(
 
         if is_human && !cli.quiet {
             println!();
-            println!("{}", console::style("Diagnostic Summary Table").bold().underlined());
-            println!("{:<45} {:<15} {:<8} {:<10}", "TARGET", "STATUS", "HTTP", "RTT");
+            println!(
+                "{}",
+                console::style("Diagnostic Summary Table")
+                    .bold()
+                    .underlined()
+            );
+            println!(
+                "{:<45} {:<15} {:<8} {:<10}",
+                "TARGET", "STATUS", "HTTP", "RTT"
+            );
             println!("{}", "-".repeat(82));
-            
+
             let mut passed_count = 0;
             let mut failed_count = 0;
             let mut degraded_count = 0;
@@ -962,13 +1175,19 @@ async fn run_test(
                     failed_count += 1;
                     console::style("UNREACHABLE").red()
                 };
-                
-                let http_str = res.http_status.map(|s| s.to_string()).unwrap_or_else(|| "—".to_string());
+
+                let http_str = res
+                    .http_status
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| "—".to_string());
                 let rtt_str = format!("{} ms", res.latency_ms);
-                
-                println!("{:<45} {:<15} {:<8} {:<10}", target_display, status_str, http_str, rtt_str);
+
+                println!(
+                    "{:<45} {:<15} {:<8} {:<10}",
+                    target_display, status_str, http_str, rtt_str
+                );
             }
-            
+
             println!("{}", "-".repeat(82));
             println!(
                 "{} reachable · {} degraded · {} failed",
@@ -1001,7 +1220,9 @@ async fn run_test(
         }
     }
 
-    let any_failed = results.iter().any(|r| r.overall_status == "down" || r.status == ProbeStatus::Failed);
+    let any_failed = results
+        .iter()
+        .any(|r| r.overall_status == "down" || r.status == ProbeStatus::Failed);
     if any_failed {
         if results.len() == 1 {
             map_failure_to_exit_code(&results[0])
@@ -1077,7 +1298,10 @@ async fn run_preflight(profile_id: &str) -> i32 {
 
     let mut successes = 0;
     for endpoint in &preflight_settings.endpoints {
-        print!("  Checking preflight endpoint {}... ", redact_credentials(endpoint));
+        print!(
+            "  Checking preflight endpoint {}... ",
+            redact_credentials(endpoint)
+        );
         let _ = std::io::stdout().flush();
         match client.head(endpoint).send().await {
             Ok(resp) if resp.status().is_success() || resp.status().is_redirection() => {
@@ -1085,7 +1309,10 @@ async fn run_preflight(profile_id: &str) -> i32 {
                 successes += 1;
             }
             Ok(resp) => {
-                println!("{}", console::style(format!("FAIL (HTTP status {})", resp.status())).red());
+                println!(
+                    "{}",
+                    console::style(format!("FAIL (HTTP status {})", resp.status())).red()
+                );
             }
             Err(e) => {
                 println!("{}", console::style(format!("FAIL ({})", e)).red());
@@ -1615,7 +1842,7 @@ fn restore_backup(backup_path: &str) -> Result<(), String> {
 fn run_completion(shell_str: &str) -> i32 {
     use clap::CommandFactory;
     use clap_complete::generate;
-    
+
     let mut cmd = Cli::command();
     let shell = match shell_str.to_lowercase().as_str() {
         "bash" => clap_complete::Shell::Bash,
@@ -1624,11 +1851,14 @@ fn run_completion(shell_str: &str) -> i32 {
         "powershell" => clap_complete::Shell::PowerShell,
         "elvish" => clap_complete::Shell::Elvish,
         _ => {
-            eprintln!("Error: Unsupported shell '{}'. Supported: bash, zsh, fish, powershell, elvish", shell_str);
+            eprintln!(
+                "Error: Unsupported shell '{}'. Supported: bash, zsh, fish, powershell, elvish",
+                shell_str
+            );
             return 2;
         }
     };
-    
+
     generate(shell, &mut cmd, "canireach", &mut std::io::stdout());
     0
 }
@@ -1648,7 +1878,13 @@ mod cli_tests {
 
     #[test]
     fn test_redact_credentials() {
-        assert_eq!(redact_credentials("https://github.com"), "https://github.com");
-        assert_eq!(redact_credentials("https://user:pass@github.com"), "https://[redacted]@github.com/");
+        assert_eq!(
+            redact_credentials("https://github.com"),
+            "https://github.com"
+        );
+        assert_eq!(
+            redact_credentials("https://user:pass@github.com"),
+            "https://[redacted]@github.com/"
+        );
     }
 }

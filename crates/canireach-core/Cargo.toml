@@ -1,6 +1,6 @@
 [package]
 name = "canireach-core"
-version = "1.0.0-rc.15"
+version = "1.0.0-rc.16"
 edition = "2021"
 
 [dependencies]

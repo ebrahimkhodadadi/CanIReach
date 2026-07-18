@@ -48,17 +48,18 @@ impl AppState {
         }));
 
         let analyzer_service = crate::monitoring::analyzer::AnalyzerService::new();
-        let analyzer_snapshot = Arc::new(Mutex::new(crate::monitoring::analyzer::AnalyzerSnapshot {
-            status: "off".to_string(),
-            current_latency: 0.0,
-            current_jitter: 0.0,
-            current_dns_latency: 0.0,
-            current_loss: 0.0,
-            stability_score: 100.0,
-            active_interface: "Ethernet/Wi-Fi".to_string(),
-            ip4_available: true,
-            ip6_available: false,
-        }));
+        let analyzer_snapshot =
+            Arc::new(Mutex::new(crate::monitoring::analyzer::AnalyzerSnapshot {
+                status: "off".to_string(),
+                current_latency: 0.0,
+                current_jitter: 0.0,
+                current_dns_latency: 0.0,
+                current_loss: 0.0,
+                stability_score: 100.0,
+                active_interface: "Ethernet/Wi-Fi".to_string(),
+                ip4_available: true,
+                ip6_available: false,
+            }));
 
         let engine = ProbeEngine::new(config.clone())?;
         let active_traces = Arc::new(Mutex::new(HashMap::new()));

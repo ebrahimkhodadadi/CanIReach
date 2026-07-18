@@ -278,7 +278,7 @@ pub fn list_notifications(
         .map_err(|e| AppError::Generic(format!("Failed to open DB: {}", e)))?;
 
     let limit_val = limit.unwrap_or(100);
-    
+
     let sql = if unread_only {
         "SELECT id, type, severity, created_at, read_at, title, summary, target_id, profile_id, run_id, incident_id, problem_id, delivery_state, deduplication_key
          FROM notifications
@@ -292,7 +292,9 @@ pub fn list_notifications(
          LIMIT ?1"
     };
 
-    let mut stmt = conn.prepare(sql).map_err(|e| AppError::Generic(e.to_string()))?;
+    let mut stmt = conn
+        .prepare(sql)
+        .map_err(|e| AppError::Generic(e.to_string()))?;
     let rows = stmt
         .query_map(params![limit_val], |row| {
             Ok(MonitoringNotification {

@@ -10,28 +10,28 @@ pub mod privacy_diagnostics;
 pub mod traceroute;
 
 use app_state::AppState;
-use tauri::Manager;
 use commands::{
-    acknowledge_incident, cancel_investigation, cancel_traceroute, create_block_page_signature,
-    list_notifications, mark_notification_as_read, mark_all_notifications_as_read,
-    get_update_state, check_for_updates, download_and_install_update,
-    get_analyzer_snapshot, start_analyzer, stop_analyzer, get_analyzer_samples,
-    create_investigation, create_monitoring_schedule, create_network_profile, create_target,
-    create_target_group, delete_block_page_signature, delete_investigation,
-    delete_monitoring_history, delete_monitoring_schedule, delete_network_profile, delete_target,
-    delete_target_group, duplicate_monitoring_schedule, duplicate_target, get_daily_data_budget,
-    get_history_summary, get_investigation, get_network_operation, get_network_profiles,
-    get_privacy_expectation, get_scheduler_status, get_settings, get_target_groups, get_targets,
+    acknowledge_incident, cancel_all_probes, cancel_investigation, cancel_probe, cancel_traceroute,
+    check_for_updates, create_block_page_signature, create_investigation,
+    create_monitoring_schedule, create_network_profile, create_target, create_target_group,
+    delete_block_page_signature, delete_investigation, delete_monitoring_history,
+    delete_monitoring_schedule, delete_network_profile, delete_target, delete_target_group,
+    download_and_install_update, duplicate_monitoring_schedule, duplicate_target,
+    get_analyzer_samples, get_analyzer_snapshot, get_daily_data_budget, get_history_summary,
+    get_investigation, get_network_operation, get_network_profiles, get_privacy_expectation,
+    get_scheduler_status, get_settings, get_target_groups, get_targets, get_update_state,
     list_block_page_signatures, list_incidents, list_investigations, list_monitoring_schedules,
+    list_notifications, mark_all_notifications_as_read, mark_notification_as_read,
     pause_scheduled_monitoring, probe_all, probe_one, query_monitoring_history,
     query_network_operations, query_performance_history, query_privacy_assessments,
-    record_webrtc_candidate, resume_scheduled_monitoring, run_schedule_now,
-    save_privacy_expectation, save_settings, reset_application, set_default_network_profile,
-    set_monitoring_schedule_enabled, set_target_enabled, start_investigation,
-    start_performance_run, start_privacy_assessment, start_traceroute, update_block_page_signature,
-    update_monitoring_schedule, update_network_profile, update_target, update_target_group,
-    cancel_probe, cancel_all_probes,
+    record_webrtc_candidate, reset_application, resume_scheduled_monitoring, run_schedule_now,
+    save_privacy_expectation, save_settings, set_default_network_profile,
+    set_monitoring_schedule_enabled, set_target_enabled, start_analyzer, start_investigation,
+    start_performance_run, start_privacy_assessment, start_traceroute, stop_analyzer,
+    update_block_page_signature, update_monitoring_schedule, update_network_profile, update_target,
+    update_target_group,
 };
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -42,13 +42,19 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
-            println!("INFO: Single instance triggered with args: {:?}, cwd: {}", args, cwd);
+            println!(
+                "INFO: Single instance triggered with args: {:?}, cwd: {}",
+                args, cwd
+            );
             if let Some(win) = app.get_webview_window("main") {
                 let _ = win.show();
                 let _ = win.set_focus();
             }
         }))
-        .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec![])))
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec![]),
+        ))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(state)
         .setup(|app| {
@@ -76,10 +82,19 @@ pub fn run() {
                 MenuItem::with_id(app, "quick_check", "Run Quick Check", true, None::<&str>)?;
 
             // Pause submenu
-            let pause_15 = MenuItem::with_id(app, "pause_15", "Pause for 15 minutes", true, None::<&str>)?;
-            let pause_60 = MenuItem::with_id(app, "pause_60", "Pause for 1 hour", true, None::<&str>)?;
-            let pause_indefinite = MenuItem::with_id(app, "pause_indefinite", "Pause indefinitely", true, None::<&str>)?;
-            let resume_item = MenuItem::with_id(app, "resume", "Resume Monitoring", true, None::<&str>)?;
+            let pause_15 =
+                MenuItem::with_id(app, "pause_15", "Pause for 15 minutes", true, None::<&str>)?;
+            let pause_60 =
+                MenuItem::with_id(app, "pause_60", "Pause for 1 hour", true, None::<&str>)?;
+            let pause_indefinite = MenuItem::with_id(
+                app,
+                "pause_indefinite",
+                "Pause indefinitely",
+                true,
+                None::<&str>,
+            )?;
+            let resume_item =
+                MenuItem::with_id(app, "resume", "Resume Monitoring", true, None::<&str>)?;
 
             let pause_menu_item = Submenu::with_id_and_items(
                 app,
@@ -92,16 +107,18 @@ pub fn run() {
             let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let separator = PredefinedMenuItem::separator(app)?;
 
-            let tray_menu =
-                Menu::with_items(app, &[
+            let tray_menu = Menu::with_items(
+                app,
+                &[
                     &show_item,
                     &compact_item,
                     &quick_check,
                     &PredefinedMenuItem::separator(app)?,
                     &pause_menu_item,
                     &separator,
-                    &quit_item
-                ])?;
+                    &quit_item,
+                ],
+            )?;
 
             let tray_icon = app.default_window_icon().cloned();
             let mut tray_builder = TrayIconBuilder::new().menu(&tray_menu);
@@ -137,10 +154,14 @@ pub fn run() {
                                 let targets = state.targets.lock().unwrap().clone();
                                 let engine = state.engine.lock().await;
                                 let app_for_event = app_clone.clone();
-                                let cancel_flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+                                let cancel_flag =
+                                    std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
                                 let _results = engine
                                     .probe_all(targets, cancel_flag, move |result| {
-                                        crate::events::emit_probe_update(Some(&app_for_event), result);
+                                        crate::events::emit_probe_update(
+                                            Some(&app_for_event),
+                                            result,
+                                        );
                                     })
                                     .await;
                                 println!("INFO: Quick check completed.");
