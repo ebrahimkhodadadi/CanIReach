@@ -77,6 +77,10 @@ struct Cli {
     #[arg(long, global = true)]
     network: Option<String>,
 
+    /// Continuous live diagnostics mode, repeating tests until stopped (Ctrl+C)
+    #[arg(short = 't', long, global = true)]
+    continuous: bool,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -621,6 +625,100 @@ async fn run_test(
     }
 
     let mut results = Vec::new();
+
+    if cli.continuous {
+        if is_human && !cli.quiet {
+            println!("{}", console::style("CanIReach · Live Continuous Diagnostics (Press Ctrl+C to stop)").cyan().bold());
+            println!("{}", console::style("────────────────────────────────────────────────────────").dim());
+        }
+
+        let ctrlc_cancel = Arc::new(AtomicBool::new(false));
+        let cancel_clone = ctrlc_cancel.clone();
+        
+        let cancel_spawn = cancel_clone.clone();
+        tokio::spawn(async move {
+            let _ = tokio::signal::ctrl_c().await;
+            cancel_spawn.store(true, std::sync::atomic::Ordering::SeqCst);
+        });
+
+        let mut seq = 1;
+        loop {
+            if cancel_clone.load(std::sync::atomic::Ordering::SeqCst) {
+                break;
+            }
+
+            for target in &targets_to_test {
+                if cancel_clone.load(std::sync::atomic::Ordering::SeqCst) {
+                    break;
+                }
+                
+                let res = engine.probe_one_with_events(target, cancel_clone.clone(), |_| {}).await;
+                
+                if cli.quiet {
+                    if cli.format == "json" {
+                        let mapped = map_to_cli_json(&res);
+                        if let Ok(serialized) = serde_json::to_string(&mapped) {
+                            println!("{}", serialized);
+                        }
+                    } else if cli.format == "ndjson" {
+                        let mapped = map_to_cli_json(&res);
+                        if let Ok(line) = serde_json::to_string(&mapped) {
+                            println!("{}", line);
+                        }
+                    } else {
+                        println!("{}", res.overall_status);
+                    }
+                } else if is_human {
+                    let status_styled = if res.overall_status == "up" {
+                        console::style(if cli.no_unicode { "✔" } else { "✔" }).green()
+                    } else if res.overall_status == "degraded" {
+                        console::style(if cli.no_unicode { "⚠" } else { "⚠" }).yellow()
+                    } else {
+                        console::style(if cli.no_unicode { "✘" } else { "✘" }).red()
+                    };
+                    
+                    let rtt_styled = if res.latency_ms < 200 {
+                        console::style(format!("{}ms", res.latency_ms)).green()
+                    } else if res.latency_ms < 800 {
+                        console::style(format!("{}ms", res.latency_ms)).yellow()
+                    } else {
+                        console::style(format!("{}ms", res.latency_ms)).red()
+                    };
+
+                    let http_status_str = res.http_status.map(|s| format!("HTTP {}", s)).unwrap_or_else(|| "HTTP —".to_string());
+                    
+                    let dns_time = res.dns.as_ref().and_then(|d| d.duration_ms).map(|d| format!("dns={}ms", d)).unwrap_or_else(|| "dns=—".to_string());
+                    let tcp_time = res.tcp.as_ref().and_then(|t| t.duration_ms).map(|t| format!("tcp={}ms", t)).unwrap_or_else(|| "tcp=—".to_string());
+                    let tls_time = res.tls.as_ref().and_then(|t| t.duration_ms).map(|t| format!("tls={}ms", t)).unwrap_or_else(|| "tls=—".to_string());
+                    let http_time = res.http.as_ref().and_then(|h| h.duration_ms).map(|h| format!("http={}ms", h)).unwrap_or_else(|| "http=—".to_string());
+
+                    let target_url_redacted = redact_credentials(&target.url);
+                    println!(
+                        "[{}] {} {} | rtt={} | {} | {}, {}, {}, {}",
+                        seq,
+                        status_styled,
+                        console::style(target_url_redacted).bold(),
+                        rtt_styled,
+                        console::style(http_status_str).cyan(),
+                        console::style(dns_time).dim(),
+                        console::style(tcp_time).dim(),
+                        console::style(tls_time).dim(),
+                        console::style(http_time).dim()
+                    );
+                } else if cli.format == "json" || cli.format == "ndjson" {
+                    let mapped = map_to_cli_json(&res);
+                    if let Ok(line) = serde_json::to_string(&mapped) {
+                        println!("{}", line);
+                    }
+                }
+            }
+
+            seq += 1;
+            tokio::time::sleep(Duration::from_secs(1)).await;
+        }
+
+        return 0;
+    }
 
     if targets_to_test.len() == 1 {
         let target = &targets_to_test[0];

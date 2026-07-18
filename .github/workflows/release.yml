@@ -170,19 +170,19 @@ jobs:
           # Collect all bundle files
           shopt -s nullglob
           FILES=()
-          FILES+=(src-tauri/target/release/bundle/msi/*.msi)
-          FILES+=(src-tauri/target/release/bundle/nsis/*.exe)
-          FILES+=(src-tauri/target/release/bundle/dmg/*.dmg)
-          FILES+=(src-tauri/target/release/bundle/deb/*.deb)
-          FILES+=(src-tauri/target/release/bundle/appimage/*.AppImage)
-          FILES+=(src-tauri/target/release/bundle/appimage/*.AppImage.tar.gz)
-          FILES+=(src-tauri/target/release/bundle/macos/*.app.tar.gz)
+          FILES+=(target/release/bundle/msi/*.msi)
+          FILES+=(target/release/bundle/nsis/*.exe)
+          FILES+=(target/release/bundle/dmg/*.dmg)
+          FILES+=(target/release/bundle/deb/*.deb)
+          FILES+=(target/release/bundle/appimage/*.AppImage)
+          FILES+=(target/release/bundle/appimage/*.AppImage.tar.gz)
+          FILES+=(target/release/bundle/macos/*.app.tar.gz)
           
           # Also grab any .sig files for updater
-          FILES+=(src-tauri/target/release/bundle/msi/*.msi.sig)
-          FILES+=(src-tauri/target/release/bundle/nsis/*.exe.sig)
-          FILES+=(src-tauri/target/release/bundle/appimage/*.AppImage.tar.gz.sig)
-          FILES+=(src-tauri/target/release/bundle/macos/*.app.tar.gz.sig)
+          FILES+=(target/release/bundle/msi/*.msi.sig)
+          FILES+=(target/release/bundle/nsis/*.exe.sig)
+          FILES+=(target/release/bundle/appimage/*.AppImage.tar.gz.sig)
+          FILES+=(target/release/bundle/macos/*.app.tar.gz.sig)
           
           if [ ${#FILES[@]} -eq 0 ]; then
             echo "⚠️ No bundle files found to upload"
@@ -201,12 +201,12 @@ jobs:
         with:
           name: desktop-bundle-${{ matrix.platform }}
           path: |
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*.exe
-            src-tauri/target/release/bundle/dmg/*.dmg
-            src-tauri/target/release/bundle/macos/*.app
-            src-tauri/target/release/bundle/deb/*.deb
-            src-tauri/target/release/bundle/appimage/*.AppImage
+            target/release/bundle/msi/*.msi
+            target/release/bundle/nsis/*.exe
+            target/release/bundle/dmg/*.dmg
+            target/release/bundle/macos/*.app
+            target/release/bundle/deb/*.deb
+            target/release/bundle/appimage/*.AppImage
 
   build-cli:
     needs: [validate, create-release]
@@ -362,7 +362,7 @@ jobs:
         run: node scripts/build-npm.cjs --binaries-dir raw-binaries
 
       - name: Publish NPM Packages
-        if: env.NPM_TOKEN != ''
+        if: ${{ secrets.NPM_TOKEN != '' }}
         run: node scripts/publish-npm.cjs
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
