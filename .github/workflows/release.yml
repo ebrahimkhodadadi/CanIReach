@@ -81,6 +81,24 @@ jobs:
       - name: Install Frontend Dependencies
         run: npm ci
 
+      - name: Disable signed updater if secrets are missing
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ]; then
+            echo "Signing private key is missing. Disabling updater signatures to produce unsigned build..."
+            node -e "
+              const fs = require('fs');
+              const path = './src-tauri/tauri.conf.json';
+              const config = JSON.parse(fs.readFileSync(path, 'utf8'));
+              if (config.plugins && config.plugins.updater) {
+                config.plugins.updater.active = false;
+              }
+              fs.writeFileSync(path, JSON.stringify(config, null, 2), 'utf8');
+            "
+          else
+            echo "Signing private key is present. Building signed update bundles..."
+          fi
+
       - name: Build Tauri Desktop Package
         uses: tauri-apps/tauri-action@v0
         env:
@@ -138,6 +156,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Install system dependencies (Tauri on Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: Install Rust Cache
         uses: swatinem/rust-cache@v2
