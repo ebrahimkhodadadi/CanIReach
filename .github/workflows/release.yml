@@ -129,6 +129,9 @@ jobs:
             echo "APPLE_TEAM_ID=${{ secrets.APPLE_TEAM_ID }}" >> $GITHUB_ENV
           fi
 
+      - name: Diagnostic Manual Build
+        run: npm run tauri build
+
       - name: Build Tauri Desktop Package
         uses: tauri-apps/tauri-action@v0
         env:
