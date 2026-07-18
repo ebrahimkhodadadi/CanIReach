@@ -4,6 +4,8 @@ use crate::intelligence::models::NetworkInvestigation;
 use crate::monitoring::persistence::DbManager;
 use rusqlite::params;
 use serde_json::json;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 use tauri::State;
 use uuid::Uuid;
 
@@ -152,7 +154,9 @@ pub async fn start_investigation(
     };
 
     let engine = state.engine.lock().await;
-    let baseline_result = engine.probe_one(&target_baseline).await;
+    let baseline_result = engine
+        .probe_one(&target_baseline, Arc::new(AtomicBool::new(false)))
+        .await;
 
     // 2. Probe using Comparison Profiles
     let mut comparison_results = Vec::new();
@@ -163,7 +167,9 @@ pub async fn start_investigation(
         } else {
             Some(comp_profile_id.clone())
         };
-        let comp_result = engine.probe_one(&target_comp).await;
+        let comp_result = engine
+            .probe_one(&target_comp, Arc::new(AtomicBool::new(false)))
+            .await;
         comparison_results.push((comp_profile_id.clone(), comp_result));
     }
 

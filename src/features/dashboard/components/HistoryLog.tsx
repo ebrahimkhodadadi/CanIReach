@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { 
   queryMonitoringHistory, 
   getHistorySummary, 
@@ -14,9 +14,10 @@ import {
   Timer,
   ChartBar,
   CaretDown,
-  CaretUp
+  CaretUp,
+  MagnifyingGlass
 } from "@phosphor-icons/react";
-import { MetricCard } from "../../../components/shared/Primitives";
+import { MetricCard, matchesTableSearch, paginateItems, PaginationControls } from "../../../components/shared/Primitives";
 
 export const HistoryLog: React.FC = () => {
   const [history, setHistory] = useState<any[]>([]);
@@ -31,8 +32,11 @@ export const HistoryLog: React.FC = () => {
   
   const [targets, setTargets] = useState<any[]>([]);
   const [targetFilter, setTargetFilter] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [limit] = useState(50);
   const [offset, setOffset] = useState(0);
+  const [page, setPage] = useState(1);
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
 
   const loadData = async () => {
@@ -52,6 +56,11 @@ export const HistoryLog: React.FC = () => {
     loadData();
   }, [targetFilter, limit, offset]);
 
+  useEffect(() => {
+    setPage(1);
+    setOffset(0);
+  }, [targetFilter, searchQuery, statusFilter]);
+
   const handleClearHistory = async () => {
     if (!confirm("Are you sure you want to permanently delete all monitoring history, batches, incidents, and alert logs?")) return;
     try {
@@ -65,6 +74,24 @@ export const HistoryLog: React.FC = () => {
   const getTargetName = (id: string) => {
     return targets.find(t => t.id === id)?.name || id;
   };
+
+  const filteredHistory = useMemo(() => {
+    return history.filter((run) => {
+      const searchableText = [
+        getTargetName(run.target_id),
+        run.status,
+        run.primary_failure_code || "",
+        run.profile_id || "",
+        run.technical_evidence || "",
+      ].join(" ");
+
+      const matchesQuery = matchesTableSearch(searchableText, searchQuery);
+      const matchesStatus = statusFilter === "ALL" || run.status?.toLowerCase() === statusFilter.toLowerCase();
+      return matchesQuery && matchesStatus;
+    });
+  }, [history, searchQuery, statusFilter, targets]);
+
+  const pagedHistory = paginateItems(filteredHistory, 10, page);
 
   const formatTime = (isoString: string) => {
     try {
@@ -133,8 +160,8 @@ export const HistoryLog: React.FC = () => {
       </div>
 
       {/* Filter Toolbar */}
-      <div className="flex items-center justify-between gap-4 bg-[var(--color-bg-panel)]/30 border border-[var(--color-border-default)] rounded p-2.5 shrink-0 select-none">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--color-bg-panel)]/30 border border-[var(--color-border-default)] rounded p-2.5 shrink-0 select-none">
+        <div className="flex flex-wrap items-center gap-3">
           <span className="text-xs font-semibold text-[var(--color-text-secondary)] font-mono">Filter Target:</span>
           <select
             value={targetFilter}
@@ -146,20 +173,49 @@ export const HistoryLog: React.FC = () => {
               <option key={t.id} value={t.id}>{t.name}</option>
             ))}
           </select>
+
+          <label className="flex items-center gap-2 rounded border border-[var(--color-border-default)] bg-[var(--color-bg-input)] px-2.5 py-1 text-xs text-[var(--color-text-secondary)]">
+            <MagnifyingGlass size={13} className="text-[var(--color-accent-primary)]" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search log"
+              className="w-32 bg-transparent outline-none text-[var(--color-text-primary)]"
+            />
+          </label>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="bg-[var(--color-bg-input)] border border-[var(--color-border-default)] text-[var(--color-text-primary)] rounded px-2.5 py-1 text-xs outline-none cursor-pointer focus:border-[var(--color-border-strong)]"
+          >
+            <option value="ALL">All Statuses</option>
+            <option value="healthy">Healthy</option>
+            <option value="degraded">Degraded</option>
+            <option value="unreachable">Unreachable</option>
+          </select>
         </div>
 
         <div className="flex items-center gap-2.5 text-xs text-[var(--color-text-secondary)] font-mono">
           <button
-            onClick={() => setOffset(Math.max(0, offset - limit))}
-            disabled={offset === 0}
+            onClick={() => {
+              const nextPage = Math.max(1, page - 1);
+              setPage(nextPage);
+              setOffset(Math.max(0, (nextPage - 1) * 10));
+            }}
+            disabled={page === 1}
             className="px-2 py-1 bg-[var(--color-bg-input)] border border-[var(--color-border-default)] rounded hover:bg-[var(--color-bg-panel-hover)] disabled:opacity-40 cursor-pointer"
           >
             Prev
           </button>
-          <span>Page {Math.floor(offset / limit) + 1}</span>
+          <span>Page {page}</span>
           <button
-            onClick={() => setOffset(offset + limit)}
-            disabled={history.length < limit}
+            onClick={() => {
+              const nextPage = page + 1;
+              setPage(nextPage);
+              setOffset((nextPage - 1) * 10);
+            }}
+            disabled={pagedHistory.items.length < 10}
             className="px-2 py-1 bg-[var(--color-bg-input)] border border-[var(--color-border-default)] rounded hover:bg-[var(--color-bg-panel-hover)] disabled:opacity-40 cursor-pointer"
           >
             Next
@@ -168,9 +224,9 @@ export const HistoryLog: React.FC = () => {
       </div>
 
       {/* History Log Table */}
-      <div className="border border-[var(--color-border-default)] rounded bg-[var(--color-bg-panel)]/40 overflow-x-auto">
+      <div className="border border-[var(--color-border-default)] rounded bg-[var(--color-bg-panel)]/40 overflow-x-auto max-h-[56vh]">
         <table className="w-full text-left border-collapse">
-          <thead>
+          <thead className="sticky top-0 z-10">
             <tr className="border-b border-[var(--color-border-default)] bg-[var(--color-bg-topbar)] text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)]">
               <th className="py-2.5 px-4">Endpoint</th>
               <th className="py-2.5 px-4">Status</th>
@@ -183,14 +239,14 @@ export const HistoryLog: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--color-border-subtle)] text-xs text-[var(--color-text-primary)]">
-            {history.length === 0 ? (
+            {filteredHistory.length === 0 ? (
               <tr>
                 <td colSpan={8} className="py-8 text-center text-[var(--color-text-muted)] font-medium">
                   No historical monitor records found.
                 </td>
               </tr>
             ) : (
-              history.map((run) => {
+              pagedHistory.items.map((run: any) => {
                 const isExpanded = expandedRunId === run.id;
                 return (
                   <React.Fragment key={run.id}>
@@ -253,6 +309,16 @@ export const HistoryLog: React.FC = () => {
           </tbody>
         </table>
       </div>
+      <PaginationControls
+        currentPage={pagedHistory.currentPage}
+        totalPages={pagedHistory.totalPages}
+        totalItems={pagedHistory.totalItems}
+        pageSize={10}
+        onPageChange={(nextPage) => {
+          setPage(nextPage);
+          setOffset((nextPage - 1) * 10);
+        }}
+      />
     </div>
   );
 };

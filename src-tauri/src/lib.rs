@@ -30,6 +30,7 @@ use commands::{
     set_monitoring_schedule_enabled, set_target_enabled, start_investigation,
     start_performance_run, start_privacy_assessment, start_traceroute, update_block_page_signature,
     update_monitoring_schedule, update_network_profile, update_target, update_target_group,
+    cancel_probe, cancel_all_probes,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -136,9 +137,12 @@ pub fn run() {
                                 let targets = state.targets.lock().unwrap().clone();
                                 let engine = state.engine.lock().await;
                                 let app_for_event = app_clone.clone();
-                                let _results = engine.probe_all(targets, move |result| {
-                                    crate::events::emit_probe_update(Some(&app_for_event), result);
-                                }).await;
+                                let cancel_flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+                                let _results = engine
+                                    .probe_all(targets, cancel_flag, move |result| {
+                                        crate::events::emit_probe_update(Some(&app_for_event), result);
+                                    })
+                                    .await;
                                 println!("INFO: Quick check completed.");
                             });
                         }
@@ -221,6 +225,8 @@ pub fn run() {
             get_targets,
             probe_all,
             probe_one,
+            cancel_probe,
+            cancel_all_probes,
             start_traceroute,
             cancel_traceroute,
             get_settings,

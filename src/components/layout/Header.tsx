@@ -4,6 +4,7 @@ import { ArrowsClockwise, Broadcast } from "@phosphor-icons/react";
 interface HeaderProps {
   isProbingAll: boolean;
   onProbeAll: () => void;
+  onStopProbeAll: () => void;
   testedCount: number;
   totalCount: number;
 }
@@ -11,14 +12,15 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   isProbingAll,
   onProbeAll,
+  onStopProbeAll,
   testedCount,
   totalCount,
 }) => {
   return (
-    <header className="h-[52px] bg-[var(--color-bg-topbar)] border-b border-[var(--color-border-default)] px-4 flex items-center justify-between shrink-0 select-none">
+    <header className="min-h-[52px] bg-[var(--color-bg-topbar)] border-b border-[var(--color-border-default)] px-4 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0 select-none">
       
       {/* Engine Status Indicators */}
-      <div className="flex items-center gap-4 text-[11px]">
+      <div className="flex flex-wrap items-center gap-3 text-[11px]">
         <div className="flex items-center gap-2">
           <span className="relative flex h-1.5 w-1.5 shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-success)] opacity-75"></span>
@@ -52,15 +54,25 @@ export const Header: React.FC<HeaderProps> = ({
           </span>
         )}
 
-        {/* Primary Retest Button */}
-        <button
-          onClick={onProbeAll}
-          disabled={isProbingAll}
-          className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--color-bg-input)] hover:bg-[var(--color-bg-panel-hover)] disabled:bg-[var(--color-bg-app)] border border-[var(--color-border-default)] hover:border-[var(--color-border-strong)] disabled:border-[var(--color-border-subtle)] disabled:opacity-50 text-[var(--color-text-primary)] disabled:text-[var(--color-text-disabled)] font-semibold rounded text-xs transition-all active:scale-[0.98] cursor-pointer"
-        >
-          <ArrowsClockwise size={11} className={isProbingAll ? "animate-spin" : ""} />
-          {isProbingAll ? "Testing All..." : "Run Test All"}
-        </button>
+        <div className="flex items-center gap-2">
+          {isProbingAll && (
+            <button
+              onClick={onStopProbeAll}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--color-danger-soft)] hover:bg-[var(--color-danger)]/15 border border-[var(--color-danger)]/25 hover:border-[var(--color-danger)] text-[var(--color-danger)] font-semibold rounded text-xs transition-all active:scale-[0.98] cursor-pointer"
+            >
+              Stop All
+            </button>
+          )}
+
+          <button
+            onClick={onProbeAll}
+            disabled={isProbingAll}
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--color-bg-input)] hover:bg-[var(--color-bg-panel-hover)] disabled:bg-[var(--color-bg-app)] border border-[var(--color-border-default)] hover:border-[var(--color-border-strong)] disabled:border-[var(--color-border-subtle)] disabled:opacity-50 text-[var(--color-text-primary)] disabled:text-[var(--color-text-disabled)] font-semibold rounded text-xs transition-all active:scale-[0.98] cursor-pointer"
+          >
+            <ArrowsClockwise size={11} className={isProbingAll ? "animate-spin" : ""} />
+            {isProbingAll ? "Testing All..." : "Run Test All"}
+          </button>
+        </div>
       </div>
 
     </header>

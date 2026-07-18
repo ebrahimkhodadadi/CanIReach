@@ -12,6 +12,7 @@ pub struct AppState {
     pub config: Mutex<ProbeConfig>,
     pub targets: Mutex<Vec<Target>>,
     pub active_traces: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
+    pub active_probes: Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>,
     pub scheduler_wake_tx: Mutex<Option<tokio::sync::mpsc::UnboundedSender<()>>>,
     pub monitoring_paused: Arc<AtomicBool>,
     pub webrtc_candidates: Arc<Mutex<HashMap<String, Vec<String>>>>,
@@ -61,12 +62,14 @@ impl AppState {
 
         let engine = ProbeEngine::new(config.clone())?;
         let active_traces = Arc::new(Mutex::new(HashMap::new()));
+        let active_probes = Arc::new(Mutex::new(HashMap::new()));
 
         Ok(Self {
             engine: TokioMutex::new(engine),
             config: Mutex::new(config),
             targets,
             active_traces,
+            active_probes,
             scheduler_wake_tx,
             monitoring_paused,
             webrtc_candidates,

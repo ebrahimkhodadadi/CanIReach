@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { TracerouteHop } from "../types";
-import { CaretDown, CaretRight } from "@phosphor-icons/react";
+import { CaretDown, CaretRight, MagnifyingGlass } from "@phosphor-icons/react";
+import { matchesTableSearch, paginateItems, PaginationControls } from "../../../components/shared/Primitives";
 
 interface TracerouteHopTableProps {
   hops: TracerouteHop[];
@@ -14,6 +15,22 @@ export const TracerouteHopTable: React.FC<TracerouteHopTableProps> = ({
   selectedHopNumber,
 }) => {
   const [expandedHops, setExpandedHops] = useState<Record<number, boolean>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
+
+  useEffect(() => {
+    setPage(1);
+  }, [hops.length, searchQuery]);
+
+  const filteredHops = useMemo(() => {
+    return hops.filter((hop) => {
+      const searchableText = [hop.address, hop.hostname, hop.status, hop.hop_number.toString()].join(" ");
+      return matchesTableSearch(searchableText, searchQuery);
+    });
+  }, [hops, searchQuery]);
+
+  const pagedHops = paginateItems(filteredHops, pageSize, page);
 
   const toggleExpand = (hopNumber: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -25,6 +42,18 @@ export const TracerouteHopTable: React.FC<TracerouteHopTableProps> = ({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 border border-slate-800/80 rounded-xl bg-slate-950/20 overflow-hidden font-sans">
+      <div className="flex items-center justify-between gap-2 border-b border-slate-800/80 bg-slate-950/30 px-3 py-2">
+        <span className="text-[10px] uppercase tracking-wider text-slate-400">Trace hops</span>
+        <label className="flex items-center gap-2 rounded border border-slate-800 bg-slate-950/50 px-2.5 py-1 text-[10px] text-slate-400">
+          <MagnifyingGlass size={12} className="text-slate-400" />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search hop"
+            className="w-28 bg-transparent outline-none text-slate-200"
+          />
+        </label>
+      </div>
       <div className="flex-1 overflow-y-auto">
         <table className="w-full text-left border-collapse select-text">
           <thead>
@@ -43,8 +72,8 @@ export const TracerouteHopTable: React.FC<TracerouteHopTableProps> = ({
           </thead>
 
           <tbody className="text-xs">
-            {hops.length > 0 ? (
-              hops.map((hop) => {
+            {pagedHops.items.length > 0 ? (
+              pagedHops.items.map((hop) => {
                 const isSelected = selectedHopNumber === hop.hop_number;
                 const isExpanded = !!expandedHops[hop.hop_number];
                 const isTimeout = hop.status === "timeout";
@@ -129,6 +158,13 @@ export const TracerouteHopTable: React.FC<TracerouteHopTableProps> = ({
           </tbody>
         </table>
       </div>
+      <PaginationControls
+        currentPage={pagedHops.currentPage}
+        totalPages={pagedHops.totalPages}
+        totalItems={pagedHops.totalItems}
+        pageSize={pageSize}
+        onPageChange={setPage}
+      />
     </div>
   );
 };

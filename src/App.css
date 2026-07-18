@@ -52,14 +52,46 @@ html, body, #root {
   width: 100%;
   margin: 0;
   overflow: hidden;
+  font-size: 15px;
 }
 
 body {
   background-color: var(--color-bg-app);
   color: var(--color-text-primary);
   font-family: var(--font-sans);
+  font-size: 0.95rem;
+  line-height: 1.5;
   letter-spacing: -0.011em;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.text-xs {
+  font-size: 0.875rem !important;
+  line-height: 1.4;
+}
+
+.text-\[10px\] {
+  font-size: 0.8125rem !important;
+  line-height: 1.4;
+}
+
+.text-\[9px\] {
+  font-size: 0.75rem !important;
+  line-height: 1.4;
+}
+
+.font-mono {
+  letter-spacing: 0.01em;
+  line-height: 1.45;
 }
 
 /* Scrollbars for dense console layouts */

@@ -10,7 +10,8 @@ use crate::monitoring::persistence::DbManager;
 use canireach_core::{ProbeResult, Target};
 use fs2::FileExt;
 use std::fs::{File, OpenOptions};
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use uuid::Uuid;
@@ -246,7 +247,9 @@ impl SchedulerService {
             let result: ProbeResult = if let Some(ref a) = app {
                 let state = a.state::<AppState>();
                 let engine = state.engine.lock().await;
-                engine.probe_one(&target).await
+                engine
+                    .probe_one(&target, Arc::new(AtomicBool::new(false)))
+                    .await
             } else {
                 let config_path = std::path::PathBuf::from("config/settings.json");
                 let config = if config_path.exists() {
@@ -260,7 +263,9 @@ impl SchedulerService {
                     canireach_core::ProbeConfig::default()
                 };
                 let engine = canireach_core::ProbeEngine::new(config)?;
-                engine.probe_one(&target).await
+                engine
+                    .probe_one(&target, Arc::new(AtomicBool::new(false)))
+                    .await
             };
 
             // Calculate status

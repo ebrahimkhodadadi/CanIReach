@@ -2,6 +2,7 @@ use super::http_probe::HttpProber;
 use crate::config::ProbeConfig;
 use crate::error::ProbeError;
 use crate::models::{ProbeResult, ProbeStageResult, Target};
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use tokio::sync::Semaphore;
 
@@ -41,12 +42,17 @@ impl ProbeEngine {
         })
     }
 
-    pub async fn probe_one(&self, target: &Target) -> ProbeResult {
+    pub async fn probe_one(&self, target: &Target, cancel_flag: Arc<AtomicBool>) -> ProbeResult {
         let _permit = self.concurrency_semaphore.acquire().await;
-        self.prober.probe(target).await
+        self.prober.probe(target, cancel_flag).await
     }
 
-    pub async fn probe_one_with_events<F>(&self, target: &Target, on_event: F) -> ProbeResult
+    pub async fn probe_one_with_events<F>(
+        &self,
+        target: &Target,
+        cancel_flag: Arc<AtomicBool>,
+        on_event: F,
+    ) -> ProbeResult
     where
         F: Fn(ProbeEvent) + Send + Sync + 'static,
     {
@@ -63,7 +69,7 @@ impl ProbeEngine {
             run_id: run_id.clone(),
             stage: "dns".to_string(),
         });
-        let result = self.prober.probe(target).await;
+        let result = self.prober.probe(target, cancel_flag).await;
 
         if let Some(ref dns) = result.dns {
             on_event(ProbeEvent::StageCompleted {
@@ -117,7 +123,12 @@ impl ProbeEngine {
         result
     }
 
-    pub async fn probe_all<F>(&self, targets: Vec<Target>, on_update: F) -> Vec<ProbeResult>
+    pub async fn probe_all<F>(
+        &self,
+        targets: Vec<Target>,
+        cancel_flag: Arc<AtomicBool>,
+        on_update: F,
+    ) -> Vec<ProbeResult>
     where
         F: Fn(ProbeResult) + Send + Sync + 'static + Clone,
     {
@@ -126,10 +137,11 @@ impl ProbeEngine {
             let prober = self.prober.clone();
             let semaphore = self.concurrency_semaphore.clone();
             let on_update_clone = on_update.clone();
+            let cancel_flag_clone = cancel_flag.clone();
 
             let task = tokio::spawn(async move {
                 let _permit = semaphore.acquire().await;
-                let result = prober.probe(&target).await;
+                let result = prober.probe(&target, cancel_flag_clone).await;
                 on_update_clone(result.clone());
                 result
             });

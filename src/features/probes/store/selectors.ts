@@ -5,6 +5,7 @@ export const useProbeResults = () => useProbeStore((s) => s.probeResults);
 export const useGlobalLogs = () => useProbeStore((s) => s.globalLogs);
 export const useIsProbingAll = () => useProbeStore((s) => s.isProbingAll);
 export const useProbingTargets = () => useProbeStore((s) => s.probingTargets);
+export const useProbeLoops = () => useProbeStore((s) => s.probeLoops);
 export const useSelectedTargetId = () => useProbeStore((s) => s.selectedTargetId);
 export const useShowGlobalLogs = () => useProbeStore((s) => s.showGlobalLogs);
 
@@ -16,7 +17,12 @@ export const useProbeActions = () => {
   const fetchTargets = useProbeStore((s) => s.fetchTargets);
   const probeAll = useProbeStore((s) => s.runProbeAll);
   const probeOne = useProbeStore((s) => s.runProbeOne);
+  const stopProbeAll = useProbeStore((s) => s.stopProbeAll);
+  const startProbeLoop = useProbeStore((s) => s.startProbeLoop);
+  const startProbeLoopUntilSuccess = useProbeStore((s) => s.startProbeLoopUntilSuccess);
+  const stopProbeLoop = useProbeStore((s) => s.stopProbeLoop);
   const handleProbeUpdate = useProbeStore((s) => s.handleProbeUpdate);
+  const handleProbeCancelled = useProbeStore((s) => s.handleProbeCancelled);
   const setSelectedTargetId = useProbeStore((s) => s.setSelectedTargetId);
   const setShowGlobalLogs = useProbeStore((s) => s.setShowGlobalLogs);
   const clearLogs = useProbeStore((s) => s.clearLogs);
@@ -44,7 +50,12 @@ export const useProbeActions = () => {
     fetchTargets,
     probeAll,
     probeOne,
+    stopProbeAll,
+    startProbeLoop,
+    startProbeLoopUntilSuccess,
+    stopProbeLoop,
     handleProbeUpdate,
+    handleProbeCancelled,
     setSelectedTargetId,
     setShowGlobalLogs,
     clearLogs,

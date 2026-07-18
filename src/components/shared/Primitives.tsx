@@ -1,5 +1,80 @@
 import React from "react";
-import { ArrowUp, ArrowDown, ArrowRight, WarningCircle } from "@phosphor-icons/react";
+import { ArrowUp, ArrowDown, ArrowRight, WarningCircle, CaretLeft, CaretRight } from "@phosphor-icons/react";
+
+export const matchesTableSearch = (value: string | undefined | null, query: string) => {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  return (value ?? "").toLowerCase().includes(normalizedQuery);
+};
+
+export const paginateItems = <T,>(items: T[], pageSize: number, page: number) => {
+  const safePageSize = Math.max(1, pageSize);
+  const safePage = Math.max(1, page);
+  const totalItems = items.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / safePageSize));
+  const currentPage = Math.min(safePage, totalPages);
+  const start = (currentPage - 1) * safePageSize;
+  const end = start + safePageSize;
+
+  return {
+    items: items.slice(start, end),
+    currentPage,
+    totalPages,
+    totalItems,
+    hasPrev: currentPage > 1,
+    hasNext: currentPage < totalPages,
+  };
+};
+
+interface PaginationControlsProps {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+}
+
+export const PaginationControls: React.FC<PaginationControlsProps> = ({
+  currentPage,
+  totalPages,
+  totalItems,
+  pageSize,
+  onPageChange,
+}) => {
+  if (totalItems <= pageSize) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--color-border-subtle)] bg-[var(--color-bg-topbar)]/50 px-3 py-2.5 text-[11px] text-[var(--color-text-secondary)]">
+      <span className="font-mono">
+        Showing {Math.min((currentPage - 1) * pageSize + 1, totalItems)}-{Math.min(currentPage * pageSize, totalItems)} of {totalItems}
+      </span>
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+          disabled={currentPage === 1}
+          className="flex items-center gap-1 rounded border border-[var(--color-border-default)] bg-[var(--color-bg-input)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-primary)] transition-all disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          <CaretLeft size={12} /> Prev
+        </button>
+        <span className="min-w-16 text-center font-mono text-[10px] text-[var(--color-text-primary)]">
+          {currentPage} / {totalPages}
+        </span>
+        <button
+          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+          disabled={currentPage === totalPages}
+          className="flex items-center gap-1 rounded border border-[var(--color-border-default)] bg-[var(--color-bg-input)] px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-primary)] transition-all disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          Next <CaretRight size={12} />
+        </button>
+      </div>
+    </div>
+  );
+};
 
 // ==========================================
 // 1. StatusDot
@@ -83,7 +158,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   return (
     <div 
       onClick={onClick}
-      className={`console-card p-3.5 flex flex-col justify-between h-24 ${onClick ? "cursor-pointer" : ""}`}
+      className={`console-card p-3.5 flex flex-col justify-between min-h-24 ${onClick ? "cursor-pointer" : ""}`}
     >
       <div className="flex items-center justify-between w-full">
         <span className="text-[10px] text-[var(--color-text-secondary)] font-bold uppercase font-mono tracking-wider">

@@ -3,6 +3,7 @@ import { Target, ProbeResult } from "../../features/probes/types";
 import { mapProbeResultToTargetCheckResult } from "../../features/monitoring/services/monitoringMapper";
 import {
   Play,
+  Stop,
   ShareNetwork,
   Funnel,
   XCircle,
@@ -17,7 +18,8 @@ import {
   ToggleRight,
   DotsThreeVertical,
   CheckSquare,
-  Square
+  Square,
+  ArrowsClockwise
 } from "@phosphor-icons/react";
 import { useActiveRuns } from "../../features/traceroute/store/selectors";
 import { useProbeActions } from "../../features/probes/store/selectors";
@@ -27,8 +29,11 @@ interface TargetGridProps {
   categories: Record<string, Target[]>;
   probeResults: Record<string, ProbeResult>;
   probingTargets: Record<string, boolean>;
+  probeLoops: Record<string, { intervalMs: number; running: boolean; mode: "interval" | "until_success" }>;
   onSelectTarget: (id: string) => void;
   onRetestTarget: (id: string) => void;
+  onStopTarget: (id: string) => void;
+  onStartUntilSuccess: (id: string) => void;
   onTraceTarget: (id: string) => void;
 }
 
@@ -39,8 +44,11 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
   categories,
   probeResults,
   probingTargets,
+  probeLoops,
   onSelectTarget,
   onRetestTarget,
+  onStopTarget,
+  onStartUntilSuccess,
   onTraceTarget,
 }) => {
   const activeRuns = useActiveRuns();
@@ -120,6 +128,13 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
 
     // Sort targets
     result.sort((a, b) => {
+      const testedA = !!a.rawResult;
+      const testedB = !!b.rawResult;
+
+      if (testedA !== testedB) {
+        return testedA ? -1 : 1;
+      }
+
       let valA: any = "";
       let valB: any = "";
 
@@ -405,6 +420,9 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
               {processedTargets.map(({ target, result }) => {
                 const isProbing = result.status === "checking";
                 const isTracing = !!activeRuns[target.id];
+                const loopState = probeLoops[target.id];
+                const isLoopRunning = !!loopState?.running;
+                const isUntilSuccess = loopState?.mode === "until_success";
                 const isSelected = selectedIds.includes(target.id);
 
                 return (
@@ -495,14 +513,36 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onRetestTarget(target.id);
+                          if (isProbing || isLoopRunning) {
+                            onStopTarget(target.id);
+                          } else {
+                            onRetestTarget(target.id);
+                          }
                         }}
-                        disabled={isProbing || !target.enabled}
-                        className="p-1 rounded bg-[var(--color-bg-input)] hover:bg-[var(--color-bg-panel-hover)] border border-[var(--color-border-default)] hover:border-[var(--color-border-strong)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-all cursor-pointer disabled:opacity-55"
-                        title="Retest endpoint"
+                        disabled={!target.enabled && !isProbing && !isLoopRunning}
+                        className={`p-1 rounded border transition-all cursor-pointer disabled:opacity-55 ${
+                          isProbing || isLoopRunning
+                            ? "bg-[var(--color-danger-soft)] border-[var(--color-danger)]/25 text-[var(--color-danger)] hover:border-[var(--color-danger)]"
+                            : "bg-[var(--color-bg-input)] hover:bg-[var(--color-bg-panel-hover)] border border-[var(--color-border-default)] hover:border-[var(--color-border-strong)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                        }`}
+                        title={isProbing || isLoopRunning ? "Stop running test" : "Retest endpoint"}
                       >
-                        <Play size={10} weight="fill" className={isProbing ? "animate-spin" : ""} />
+                        {isProbing || isLoopRunning ? <Stop size={10} weight="fill" /> : <Play size={10} weight="fill" className={isProbing ? "animate-spin" : ""} />}
                       </button>
+
+                      {!isLoopRunning && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onStartUntilSuccess(target.id);
+                          }}
+                          disabled={!target.enabled}
+                          className="p-1 rounded bg-[var(--color-bg-input)] hover:bg-[var(--color-bg-panel-hover)] border border-[var(--color-border-default)] hover:border-[var(--color-border-strong)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-all cursor-pointer disabled:opacity-55"
+                          title={isUntilSuccess ? "Until-success loop running" : "Test until OK"}
+                        >
+                          <ArrowsClockwise size={10} weight="fill" className={isUntilSuccess ? "animate-spin text-[var(--color-accent-primary)]" : ""} />
+                        </button>
+                      )}
                       
                       <button
                         onClick={(e) => {

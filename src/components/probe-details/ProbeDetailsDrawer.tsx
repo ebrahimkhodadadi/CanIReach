@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Clock, ArrowsClockwise, Copy, Globe, Terminal, FileText, ShareNetwork, Play, Stop, ShieldCheck, Lock } from "@phosphor-icons/react";
 import { Target, ProbeResult } from "../../features/probes/types";
@@ -10,8 +10,13 @@ interface ProbeDetailsDrawerProps {
   target: Target;
   result: ProbeResult | undefined;
   isProbing: boolean;
+  isLoopRunning: boolean;
   onClose: () => void;
   onRetest: () => void;
+  onStopProbe: () => void;
+  onStartLoop: (intervalMs: number) => void;
+  onStartLoopUntilSuccess: (intervalMs: number) => void;
+  onStopLoop: () => void;
   initialTab?: "summary" | "timeline" | "path" | "raw";
 }
 
@@ -26,12 +31,19 @@ export const ProbeDetailsDrawer: React.FC<ProbeDetailsDrawerProps> = ({
   target,
   result,
   isProbing,
+  isLoopRunning,
   onClose,
   onRetest,
+  onStopProbe,
+  onStartLoop,
+  onStartLoopUntilSuccess,
+  onStopLoop,
   initialTab,
 }) => {
   const [activeTab, setActiveTab] = useState<"summary" | "timeline" | "path" | "raw">("summary");
   const [copied, setCopied] = useState(false);
+  const [loopIntervalValue, setLoopIntervalValue] = useState("5");
+  const [loopIntervalUnit, setLoopIntervalUnit] = useState<"seconds" | "minutes" | "hours">("seconds");
   const statusInfo = getStatusDisplayInfo(isProbing, result);
 
   React.useEffect(() => {
@@ -47,6 +59,16 @@ export const ProbeDetailsDrawer: React.FC<ProbeDetailsDrawerProps> = ({
   const traceResult = traces[target.id];
   const activeRunId = activeRuns[target.id];
   const isTracing = !!activeRunId;
+
+  const loopIntervalMs = useMemo(() => {
+    const value = Number(loopIntervalValue);
+    if (!Number.isFinite(value) || value <= 0) {
+      return 5000;
+    }
+
+    const factor = loopIntervalUnit === "minutes" ? 60_000 : loopIntervalUnit === "hours" ? 3_600_000 : 1_000;
+    return Math.max(1000, Math.round(value * factor));
+  }, [loopIntervalValue, loopIntervalUnit]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -582,7 +604,48 @@ export const ProbeDetailsDrawer: React.FC<ProbeDetailsDrawerProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-5 border-t border-slate-800 bg-[#07090e]/40 shrink-0 flex gap-2">
+        <div className="p-5 border-t border-slate-800 bg-[#07090e]/40 shrink-0 flex flex-col gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 items-center">
+            <input
+              value={loopIntervalValue}
+              onChange={(e) => setLoopIntervalValue(e.target.value)}
+              inputMode="numeric"
+              min={1}
+              className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500"
+              placeholder="Interval"
+            />
+            <select
+              value={loopIntervalUnit}
+              onChange={(e) => setLoopIntervalUnit(e.target.value as "seconds" | "minutes" | "hours")}
+              className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500 cursor-pointer"
+            >
+              <option value="seconds">Seconds</option>
+              <option value="minutes">Minutes</option>
+              <option value="hours">Hours</option>
+            </select>
+            <button
+              onClick={() => onStartLoopUntilSuccess(loopIntervalMs)}
+              className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-300 cursor-pointer hover:bg-emerald-500/15"
+            >
+              Start Until OK
+            </button>
+            {isLoopRunning ? (
+              <button
+                onClick={onStopLoop}
+                className="rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-300 cursor-pointer hover:bg-rose-500/15"
+              >
+                Stop Loop
+              </button>
+            ) : (
+              <button
+                onClick={() => onStartLoop(loopIntervalMs)}
+                className="rounded-lg border border-indigo-500/25 bg-indigo-500/10 px-3 py-2 text-xs font-semibold text-indigo-300 cursor-pointer hover:bg-indigo-500/15"
+              >
+                Start Loop
+              </button>
+            )}
+          </div>
+
           {result?.error && (
             <button
               onClick={() => copyToClipboard(result.error || "")}
@@ -594,12 +657,15 @@ export const ProbeDetailsDrawer: React.FC<ProbeDetailsDrawerProps> = ({
           )}
           
           <button
-            onClick={onRetest}
-            disabled={isProbing}
-            className="flex-1 flex items-center justify-center gap-2 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-850 text-white font-semibold rounded-lg text-xs shadow-lg transition-all active:scale-[0.99] cursor-pointer"
+            onClick={isProbing ? onStopProbe : onRetest}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 font-semibold rounded-lg text-xs shadow-lg transition-all active:scale-[0.99] cursor-pointer ${
+              isProbing
+                ? "bg-rose-600 hover:bg-rose-500 text-white"
+                : "bg-indigo-600 hover:bg-indigo-500 text-white"
+            }`}
           >
-            <ArrowsClockwise size={14} className={isProbing ? "animate-spin" : ""} />
-            {isProbing ? "Probing endpoint..." : "Retest Endpoint Now"}
+            {isProbing ? <Stop size={14} weight="fill" /> : <ArrowsClockwise size={14} className={isLoopRunning ? "animate-spin" : ""} />}
+            {isProbing ? "Stop Current Probe" : "Retest Endpoint Now"}
           </button>
         </div>
 

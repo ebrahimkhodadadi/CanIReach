@@ -73,6 +73,14 @@ export const probeOne = async (targetId: string): Promise<ProbeResult> => {
   return invoke<ProbeResult>("probe_one", { targetId });
 };
 
+export const cancelProbe = async (targetId: string): Promise<void> => {
+  return invoke<void>("cancel_probe", { targetId });
+};
+
+export const cancelAllProbes = async (): Promise<void> => {
+  return invoke<void>("cancel_all_probes");
+};
+
 export const getSettings = async (): Promise<FrontendSettings> => {
   return invoke<FrontendSettings>("get_settings");
 };

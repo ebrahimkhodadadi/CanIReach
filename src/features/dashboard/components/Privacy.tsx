@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   ShieldCheck, 
   Play, 
@@ -8,7 +8,8 @@ import {
   Info,
   Clock,
   Export,
-  Notebook
+  Notebook,
+  MagnifyingGlass
 } from "@phosphor-icons/react";
 import { 
   getNetworkProfiles, 
@@ -18,6 +19,7 @@ import {
   queryPrivacyAssessments 
 } from "../../../features/probes/api/probeCommands";
 import { PrivacyAssessment, PrivacyExpectationPolicy, PrivacyFinding, NetworkProfile } from "../../../features/probes/types";
+import { matchesTableSearch, paginateItems, PaginationControls } from "../../../components/shared/Primitives";
 
 export const Privacy: React.FC = () => {
   const [profiles, setProfiles] = useState<NetworkProfile[]>([]);
@@ -39,6 +41,9 @@ export const Privacy: React.FC = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeStage, setActiveStage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 8;
 
   useEffect(() => {
     loadInitialData();
@@ -46,6 +51,10 @@ export const Privacy: React.FC = () => {
 
   useEffect(() => {
     loadPolicyForProfile(selectedProfileId);
+  }, [selectedProfileId]);
+
+  useEffect(() => {
+    setPage(1);
   }, [selectedProfileId]);
 
   const loadInitialData = async () => {
@@ -182,6 +191,15 @@ export const Privacy: React.FC = () => {
   };
 
   // Export Sanitized Markdown Report
+  const filteredAssessments = useMemo(() => {
+    return assessments.filter((assessment) => {
+      const searchableText = [assessment.profile_id, assessment.overall_verdict, assessment.status].join(" ");
+      return matchesTableSearch(searchableText, searchQuery);
+    });
+  }, [assessments, searchQuery]);
+
+  const pagedAssessments = paginateItems(filteredAssessments, pageSize, page);
+
   const exportSanitizedReport = () => {
     if (!activeAssessment) return;
 
@@ -231,7 +249,7 @@ export const Privacy: React.FC = () => {
     <div className="flex-1 flex flex-col min-h-0 overflow-y-auto p-4 space-y-4 bg-[var(--color-bg-app)]">
       
       {/* Header Description */}
-      <div className="flex items-center justify-between border-b border-[var(--color-border-default)] pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border-default)] pb-3">
         <div>
           <h2 className="text-sm font-bold text-[var(--color-text-primary)] uppercase tracking-wider font-mono flex items-center gap-2 select-none">
             <ShieldCheck size={16} className="text-[var(--color-accent-primary)]" />
@@ -470,9 +488,21 @@ export const Privacy: React.FC = () => {
           Historical Privacy Assessments
         </h3>
 
-        <div className="overflow-x-auto">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-2 rounded border border-[var(--color-border-default)] bg-[var(--color-bg-input)] px-2.5 py-1 text-xs text-[var(--color-text-secondary)]">
+            <MagnifyingGlass size={13} className="text-[var(--color-accent-primary)]" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search assessment"
+              className="w-36 bg-transparent outline-none text-[var(--color-text-primary)]"
+            />
+          </label>
+        </div>
+
+        <div className="overflow-x-auto max-h-[40vh]">
           <table className="w-full text-left border-collapse">
-            <thead>
+            <thead className="sticky top-0 z-10">
               <tr className="border-b border-[var(--color-border-default)] text-[10px] text-[var(--color-text-secondary)] uppercase tracking-wider font-bold select-none">
                 <th className="py-2.5 px-3">Run ID</th>
                 <th className="py-2.5 px-3">Profile</th>
@@ -482,14 +512,14 @@ export const Privacy: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-border-subtle)] text-xs text-[var(--color-text-primary)]">
-              {assessments.length === 0 ? (
+              {pagedAssessments.items.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-[var(--color-text-muted)]">
                     No privacy assessments executed.
                   </td>
                 </tr>
               ) : (
-                assessments.map((a) => (
+                pagedAssessments.items.map((a) => (
                   <tr key={a.id} className="hover:bg-[var(--color-bg-panel-hover)]">
                     <td className="py-3 px-3 text-[var(--color-accent-primary-hover)] font-mono">{a.id.slice(0, 8)}</td>
                     <td className="py-3 px-3 text-[var(--color-text-primary)] font-semibold">{a.profile_id}</td>
@@ -506,6 +536,13 @@ export const Privacy: React.FC = () => {
             </tbody>
           </table>
         </div>
+        <PaginationControls
+          currentPage={pagedAssessments.currentPage}
+          totalPages={pagedAssessments.totalPages}
+          totalItems={pagedAssessments.totalItems}
+          pageSize={pageSize}
+          onPageChange={setPage}
+        />
       </div>
 
     </div>

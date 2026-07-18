@@ -3,7 +3,7 @@ import { Target, ProbeResult } from "../../probes/types";
 import { normalizeError } from "../../../features/monitoring/services/errorNormalizer";
 import { Play, Funnel, ArrowDown, ArrowUp, XCircle, WarningCircle, Check, SealCheck } from "@phosphor-icons/react";
 import { listIncidents, acknowledgeIncident } from "../../probes/api/probeCommands";
-import { EmptyState } from "../../../components/shared/Primitives";
+import { EmptyState, paginateItems, PaginationControls } from "../../../components/shared/Primitives";
 
 interface ProblemsProps {
   targets: Target[];
@@ -32,6 +32,8 @@ export const Problems: React.FC<ProblemsProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>("OPEN"); // "OPEN" | "RESOLVED" | "ALL"
   const [sortField, setSortField] = useState<SortField>("severity");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   const loadIncidents = async () => {
     try {
@@ -47,6 +49,10 @@ export const Problems: React.FC<ProblemsProps> = ({
       loadIncidents();
     }
   }, [activeProblemsTab]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeProblemsTab, searchQuery, severityFilter, categoryFilter, statusFilter, sortField, sortOrder]);
 
   const handleAcknowledge = async (id: string) => {
     try {
@@ -143,6 +149,9 @@ export const Problems: React.FC<ProblemsProps> = ({
 
     return result;
   }, [allProblems, searchQuery, severityFilter, categoryFilter, statusFilter, sortField, sortOrder, probeResults, probingTargets]);
+
+  const pagedProblems = paginateItems(processedProblems, pageSize, page);
+  const pagedIncidents = paginateItems(incidents, pageSize, page);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -341,7 +350,7 @@ export const Problems: React.FC<ProblemsProps> = ({
                 </thead>
 
                 <tbody>
-                  {processedProblems.map(({ target, result, error }) => {
+                  {pagedProblems.items.map(({ target, result, error }) => {
                     const isProbing = !!probingTargets[target.id];
                     
                     let severityStyle = "bg-[var(--color-unknown-soft)] text-[var(--color-unknown)] border-[var(--color-unknown)]/20";
@@ -417,6 +426,13 @@ export const Problems: React.FC<ProblemsProps> = ({
               </div>
             )}
           </div>
+          <PaginationControls
+            currentPage={pagedProblems.currentPage}
+            totalPages={pagedProblems.totalPages}
+            totalItems={pagedProblems.totalItems}
+            pageSize={pageSize}
+            onPageChange={setPage}
+          />
         </>
       ) : (
         /* Database Incidents table */
@@ -434,7 +450,7 @@ export const Problems: React.FC<ProblemsProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-900/60 text-xs text-slate-350">
-                {incidents.map((inc) => (
+                {pagedIncidents.items.map((inc) => (
                   <tr key={inc.id} className="hover:bg-slate-900/25 transition-colors">
                     <td className="py-3 px-4 font-bold text-slate-200">{inc.title}</td>
                     <td className="py-3 px-4 text-slate-400">{inc.summary}</td>
@@ -478,6 +494,15 @@ export const Problems: React.FC<ProblemsProps> = ({
             </div>
           )}
         </div>
+      )}
+      {activeProblemsTab === "incidents" && (
+        <PaginationControls
+          currentPage={pagedIncidents.currentPage}
+          totalPages={pagedIncidents.totalPages}
+          totalItems={pagedIncidents.totalItems}
+          pageSize={pageSize}
+          onPageChange={setPage}
+        />
       )}
 
     </div>

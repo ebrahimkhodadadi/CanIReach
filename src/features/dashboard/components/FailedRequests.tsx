@@ -1,14 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { 
   ArrowClockwise, 
   X,
   Funnel,
   ShieldCheck,
-  FileText
+  FileText,
+  MagnifyingGlass
 } from "@phosphor-icons/react";
 import { getTargets, getNetworkProfiles } from "../../probes/api/probeCommands";
-import { MetricCard } from "../../../components/shared/Primitives";
+import { MetricCard, matchesTableSearch, paginateItems, PaginationControls } from "../../../components/shared/Primitives";
 
 export const FailedRequests: React.FC = () => {
   const [operations, setOperations] = useState<any[]>([]);
@@ -19,8 +20,11 @@ export const FailedRequests: React.FC = () => {
   // Filters
   const [opTypeFilter, setOpTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   
   const [selectedOp, setSelectedOp] = useState<any | null>(null);
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
 
   const loadData = async () => {
     setLoading(true);
@@ -49,6 +53,10 @@ export const FailedRequests: React.FC = () => {
     loadData();
   }, [opTypeFilter, statusFilter]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [opTypeFilter, statusFilter, searchQuery]);
+
   const getTargetName = (id?: string) => {
     if (!id) return "Unknown Target";
     const found = targets.find(t => t.id === id);
@@ -61,6 +69,22 @@ export const FailedRequests: React.FC = () => {
     const found = profiles.find(p => p.id === id);
     return found ? found.name : id;
   };
+
+  const filteredOperations = useMemo(() => {
+    return operations.filter((op) => {
+      const searchableText = [
+        getTargetName(op.target_id),
+        getProfileName(op.profile_id),
+        op.operation_type,
+        op.status,
+        op.summary,
+      ].join(" ");
+
+      return matchesTableSearch(searchableText, searchQuery);
+    });
+  }, [operations, searchQuery, targets, profiles]);
+
+  const pagedOperations = paginateItems(filteredOperations, pageSize, page);
 
   // Helper to calculate statistics
   const stats = {
@@ -140,6 +164,16 @@ export const FailedRequests: React.FC = () => {
           <Funnel size={14} className="text-[var(--color-accent-primary)]" />
           <span>Filters:</span>
         </div>
+
+        <label className="flex items-center gap-2 rounded border border-[var(--color-border-default)] bg-[var(--color-bg-input)] px-2.5 py-1 text-xs text-[var(--color-text-secondary)]">
+          <MagnifyingGlass size={13} className="text-[var(--color-accent-primary)]" />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search target / summary"
+            className="w-36 bg-transparent outline-none text-[var(--color-text-primary)]"
+          />
+        </label>
         
         {/* Operation Type Filter */}
         <select 
@@ -169,9 +203,9 @@ export const FailedRequests: React.FC = () => {
 
       {/* 5. Operations List Table */}
       <div className="border border-[var(--color-border-default)] rounded bg-[var(--color-bg-panel)]/40 overflow-hidden flex-1 flex flex-col min-h-0">
-        <div className="overflow-x-auto flex-1">
+        <div className="overflow-x-auto flex-1 min-h-[240px] max-h-[50vh] sm:max-h-[55vh]">
           <table className="w-full text-left border-collapse">
-            <thead>
+            <thead className="sticky top-0 z-10">
               <tr className="border-b border-[var(--color-border-default)] bg-[var(--color-bg-topbar)] text-[10px] uppercase font-bold text-[var(--color-text-secondary)] tracking-wider">
                 <th className="px-4 py-2.5">Timestamp</th>
                 <th className="px-4 py-2.5">Target</th>
@@ -189,14 +223,14 @@ export const FailedRequests: React.FC = () => {
                     Loading recorded failures...
                   </td>
                 </tr>
-              ) : operations.length === 0 ? (
+              ) : filteredOperations.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-10 text-center text-[var(--color-text-muted)] font-medium">
                     No failed network operations match current filters.
                   </td>
                 </tr>
               ) : (
-                operations.map((op) => (
+                pagedOperations.items.map((op) => (
                   <tr 
                     key={op.id} 
                     onClick={() => setSelectedOp(op)}
@@ -237,6 +271,13 @@ export const FailedRequests: React.FC = () => {
             </tbody>
           </table>
         </div>
+        <PaginationControls
+          currentPage={pagedOperations.currentPage}
+          totalPages={pagedOperations.totalPages}
+          totalItems={pagedOperations.totalItems}
+          pageSize={pageSize}
+          onPageChange={setPage}
+        />
       </div>
 
       {/* 6. Operation Details Drawer/Modal */}

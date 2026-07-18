@@ -5,11 +5,12 @@ use crate::models::{
     Confidence, FailureEvidence, FailureKind, FailureStage, LogLevel, ProbeLog, ProbeResult,
     ProbeStageResult, ProbeStatus, Target, Timings,
 };
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use reqwest::Url;
 use rustls::{ClientConfig, ClientConnection, ServerName};
 use std::collections::HashMap;
 use std::io::Write;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -384,6 +385,62 @@ async fn run_ip_family_diagnostics(
     }
 }
 
+fn cancelled_probe_result(
+    target: &Target,
+    url_str: String,
+    run_id: String,
+    started_at: DateTime<Utc>,
+    start_time: Instant,
+    log: ProbeLog,
+    stage: FailureStage,
+    message: &str,
+) -> ProbeResult {
+    let now = Utc::now();
+    ProbeResult {
+        target_id: target.id.clone(),
+        target_url: url_str,
+        run_id,
+        started_at,
+        completed_at: Some(now),
+        overall_status: "down".to_string(),
+        dns: None,
+        tcp: None,
+        tls: None,
+        http: None,
+        ipv4: None,
+        ipv6: None,
+        redirect: None,
+        failure: Some(FailureEvidence {
+            stage,
+            kind: FailureKind::RuntimeError,
+            user_message: message.to_string(),
+            technical_message: Some(message.to_string()),
+            error_chain: Some(vec![message.to_string()]),
+            errno: None,
+            http_status: None,
+            address: None,
+            protocol: None,
+            retryable: false,
+            observed_at: now,
+            confidence: Confidence::Direct,
+        }),
+        timings: Timings {
+            total_ms: Some(start_time.elapsed().as_millis() as u64),
+            ..Timings::default()
+        },
+        status: ProbeStatus::Failed,
+        failure_stage: stage,
+        http_status: None,
+        latency_ms: start_time.elapsed().as_millis() as u64,
+        error: Some(message.to_string()),
+        error_code: Some("cancelled".to_string()),
+        timestamp: now,
+        log,
+        final_url: None,
+        redirect_count: None,
+    }
+}
+
 async fn run_tls_diagnostics(
     host: &str,
     port: u16,
@@ -729,7 +786,7 @@ impl HttpProber {
         Ok(Self { client, config })
     }
 
-    pub async fn probe(&self, target: &Target) -> ProbeResult {
+    pub async fn probe(&self, target: &Target, cancel_flag: Arc<AtomicBool>) -> ProbeResult {
         let mut log = ProbeLog::new();
         let start_time = Instant::now();
         let started_at = Utc::now();
@@ -762,6 +819,11 @@ impl HttpProber {
                 target.name, url_str
             ),
         );
+
+        if cancel_flag.load(Ordering::Relaxed) {
+            log.add(LogLevel::Warn, "Probe cancelled before validation started.".to_string());
+            return cancelled_probe_result(&target, url_str.clone(), run_id.clone(), started_at, start_time, log, FailureStage::Runtime, "Probe cancelled");
+        }
 
         let url = match Url::parse(&url_str) {
             Ok(u) => {
@@ -866,9 +928,18 @@ impl HttpProber {
         let host = url.host_str().unwrap_or("").to_string();
         let port = url.port_or_known_default().unwrap_or(80);
 
+        if cancel_flag.load(Ordering::Relaxed) {
+            log.add(LogLevel::Warn, "Probe cancelled before DNS stage.".to_string());
+            return cancelled_probe_result(&target, url_str.clone(), run_id.clone(), started_at, start_time, log, FailureStage::Runtime, "Probe cancelled");
+        }
+
         // 1. Run DNS Diagnostic Probe
         log.add(LogLevel::Info, "Initiating DNS resolution...".to_string());
         let (dns_stage, resolved_addrs) = run_dns_diagnostics(&host, port).await;
+                if cancel_flag.load(Ordering::Relaxed) {
+                    log.add(LogLevel::Warn, "Probe cancelled after DNS stage.".to_string());
+                    return cancelled_probe_result(&target, url_str.clone(), run_id.clone(), started_at, start_time, log, FailureStage::Runtime, "Probe cancelled");
+                }
         let dns_ok = dns_stage.status == "passed";
         if dns_ok {
             log.add(LogLevel::Info, "DNS resolved successfully.".to_string());
@@ -908,6 +979,11 @@ impl HttpProber {
             )
         };
 
+        if cancel_flag.load(Ordering::Relaxed) {
+            log.add(LogLevel::Warn, "Probe cancelled after IP checks.".to_string());
+            return cancelled_probe_result(&target, url_str.clone(), run_id.clone(), started_at, start_time, log, FailureStage::Runtime, "Probe cancelled");
+        }
+
         // 3. Run TCP connection diagnostic probe
         log.add(LogLevel::Info, "Establishing TCP connection...".to_string());
         let tcp_stage = if let Some(addrs_vec) = &resolved_addrs {
@@ -923,6 +999,11 @@ impl HttpProber {
                 metadata: None,
             }
         };
+
+        if cancel_flag.load(Ordering::Relaxed) {
+            log.add(LogLevel::Warn, "Probe cancelled after TCP stage.".to_string());
+            return cancelled_probe_result(&target, url_str.clone(), run_id.clone(), started_at, start_time, log, FailureStage::Runtime, "Probe cancelled");
+        }
         let tcp_ok = tcp_stage.status == "passed";
         if tcp_ok {
             log.add(LogLevel::Info, "TCP connection established.".to_string());
@@ -952,6 +1033,11 @@ impl HttpProber {
         } else {
             None
         };
+
+        if cancel_flag.load(Ordering::Relaxed) {
+            log.add(LogLevel::Warn, "Probe cancelled after TLS stage.".to_string());
+            return cancelled_probe_result(&target, url_str.clone(), run_id.clone(), started_at, start_time, log, FailureStage::Runtime, "Probe cancelled");
+        }
         let tls_ok = tls_stage
             .as_ref()
             .map(|s| s.status == "passed")
@@ -969,6 +1055,10 @@ impl HttpProber {
         // 5. Perform HTTP Probing
         if dns_ok && tcp_ok && tls_ok {
             loop {
+                if cancel_flag.load(Ordering::Relaxed) {
+                    log.add(LogLevel::Warn, "Probe cancelled during HTTP request stage.".to_string());
+                    return cancelled_probe_result(&target, url_str.clone(), run_id.clone(), started_at, start_time, log, FailureStage::Runtime, "Probe cancelled");
+                }
                 let res = self.client.get(current_url.as_str()).send().await;
 
                 match res {

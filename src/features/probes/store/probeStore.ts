@@ -18,6 +18,8 @@ import {
   setDefaultNetworkProfile,
   probeAll,
   probeOne,
+  cancelProbe,
+  cancelAllProbes,
 } from "../api/probeCommands";
 
 export interface GlobalLogStep extends LogStep {
@@ -30,6 +32,7 @@ interface ProbeState {
   globalLogs: GlobalLogStep[];
   isProbingAll: boolean;
   probingTargets: Record<string, boolean>;
+  probeLoops: Record<string, { intervalMs: number; running: boolean; mode: "interval" | "until_success" }>;
   selectedTargetId: string | null;
   showGlobalLogs: boolean;
 
@@ -41,7 +44,12 @@ interface ProbeState {
   fetchTargets: () => Promise<void>;
   runProbeAll: () => Promise<void>;
   runProbeOne: (targetId: string) => Promise<void>;
+  stopProbeAll: () => Promise<void>;
+  startProbeLoop: (targetId: string, intervalMs: number) => Promise<void>;
+  startProbeLoopUntilSuccess: (targetId: string, intervalMs: number) => Promise<void>;
+  stopProbeLoop: (targetId: string) => Promise<void>;
   handleProbeUpdate: (result: ProbeResult) => void;
+  handleProbeCancelled: (targetId: string) => void;
   setSelectedTargetId: (id: string | null) => void;
   setShowGlobalLogs: (show: boolean) => void;
   clearLogs: () => void;
@@ -72,6 +80,7 @@ export const useProbeStore = create<ProbeState>((set, get) => ({
   globalLogs: [],
   isProbingAll: false,
   probingTargets: {},
+  probeLoops: {},
   selectedTargetId: null,
   showGlobalLogs: false,
 
@@ -113,6 +122,16 @@ export const useProbeStore = create<ProbeState>((set, get) => ({
     }
   },
 
+  stopProbeAll: async () => {
+    try {
+      await cancelAllProbes();
+    } catch (err) {
+      console.error("Store failed to cancel global probe run:", err);
+    } finally {
+      set({ isProbingAll: false });
+    }
+  },
+
   runProbeOne: async (targetId) => {
     set((state) => ({
       probingTargets: {
@@ -126,6 +145,109 @@ export const useProbeStore = create<ProbeState>((set, get) => ({
     } catch (err) {
       console.error(`Store failed to probe target ${targetId}:`, err);
       set((state) => ({
+        probingTargets: {
+          ...state.probingTargets,
+          [targetId]: false,
+        },
+      }));
+    }
+  },
+
+  startProbeLoop: async (targetId, intervalMs) => {
+    const safeIntervalMs = Math.max(1000, intervalMs);
+    const current = get().probeLoops[targetId];
+    if (current?.running) return;
+
+    set((state) => ({
+      probeLoops: {
+        ...state.probeLoops,
+        [targetId]: { intervalMs: safeIntervalMs, running: true, mode: "interval" },
+      },
+    }));
+
+    const runLoop = async () => {
+      const loop = get().probeLoops[targetId];
+      if (!loop?.running) return;
+
+      try {
+        await probeOne(targetId);
+      } catch (err) {
+        console.error(`Loop probe failed for ${targetId}:`, err);
+      }
+
+      const nextLoop = get().probeLoops[targetId];
+      if (!nextLoop?.running) return;
+
+      window.setTimeout(() => {
+        void runLoop();
+      }, nextLoop.intervalMs);
+    };
+
+    window.setTimeout(() => {
+      void runLoop();
+    }, 0);
+  },
+
+  startProbeLoopUntilSuccess: async (targetId, intervalMs) => {
+    const safeIntervalMs = Math.max(1000, intervalMs);
+    const current = get().probeLoops[targetId];
+    if (current?.running) return;
+
+    set((state) => ({
+      probeLoops: {
+        ...state.probeLoops,
+        [targetId]: { intervalMs: safeIntervalMs, running: true, mode: "until_success" },
+      },
+    }));
+
+    const runLoop = async () => {
+      const loop = get().probeLoops[targetId];
+      if (!loop?.running) return;
+
+      try {
+        const result = await probeOne(targetId);
+        if (result.status === "success" || result.overall_status === "up") {
+          set((state) => ({
+            probeLoops: state.probeLoops[targetId]
+              ? {
+                  ...state.probeLoops,
+                  [targetId]: { ...state.probeLoops[targetId], running: false },
+                }
+              : state.probeLoops,
+          }));
+          return;
+        }
+      } catch (err) {
+        console.error(`Loop probe failed for ${targetId}:`, err);
+      }
+
+      const nextLoop = get().probeLoops[targetId];
+      if (!nextLoop?.running) return;
+
+      window.setTimeout(() => {
+        void runLoop();
+      }, nextLoop.intervalMs);
+    };
+
+    window.setTimeout(() => {
+      void runLoop();
+    }, 0);
+  },
+
+  stopProbeLoop: async (targetId) => {
+    const loop = get().probeLoops[targetId];
+    if (!loop?.running) return;
+
+    try {
+      await cancelProbe(targetId);
+    } catch (err) {
+      console.error(`Store failed to cancel probe loop for ${targetId}:`, err);
+    } finally {
+      set((state) => ({
+        probeLoops: {
+          ...state.probeLoops,
+          [targetId]: { ...loop, running: false },
+        },
         probingTargets: {
           ...state.probingTargets,
           [targetId]: false,
@@ -159,6 +281,21 @@ export const useProbeStore = create<ProbeState>((set, get) => ({
         globalLogs: updatedGlobalLogs,
       };
     });
+  },
+
+  handleProbeCancelled: (targetId) => {
+    set((state) => ({
+      probingTargets: {
+        ...state.probingTargets,
+        [targetId]: false,
+      },
+      probeLoops: state.probeLoops[targetId]
+        ? {
+            ...state.probeLoops,
+            [targetId]: { ...state.probeLoops[targetId], running: false },
+          }
+        : state.probeLoops,
+    }));
   },
 
   setSelectedTargetId: (selectedTargetId) => set({ selectedTargetId }),

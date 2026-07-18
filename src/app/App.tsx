@@ -6,11 +6,12 @@ import {
   useGlobalLogs, 
   useIsProbingAll, 
   useProbingTargets, 
+  useProbeLoops,
   useSelectedTargetId, 
   useShowGlobalLogs, 
   useProbeActions 
 } from "../features/probes/store/selectors";
-import { subscribeToProbeUpdates } from "../features/probes/events/probeEvents";
+import { subscribeToProbeCancelled, subscribeToProbeUpdates } from "../features/probes/events/probeEvents";
 import { 
   subscribeToTracerouteStarted,
   subscribeToTracerouteHop,
@@ -56,6 +57,7 @@ export const App: React.FC = () => {
   const globalLogs = useGlobalLogs();
   const isProbingAll = useIsProbingAll();
   const probingTargets = useProbingTargets();
+  const probeLoops = useProbeLoops();
 
   if (windowLabel === "compact") {
     return <CompactDashboard />;
@@ -67,7 +69,12 @@ export const App: React.FC = () => {
     fetchTargets,
     probeAll,
     probeOne,
+    stopProbeAll,
+    startProbeLoop,
+    startProbeLoopUntilSuccess,
+    stopProbeLoop,
     handleProbeUpdate,
+    handleProbeCancelled,
     setSelectedTargetId,
     setShowGlobalLogs,
     clearLogs,
@@ -195,6 +202,22 @@ export const App: React.FC = () => {
     };
   }, [handleProbeUpdate]);
 
+  useEffect(() => {
+    let unlistenCancelled: (() => void) | null = null;
+
+    subscribeToProbeCancelled(({ targetId }) => {
+      handleProbeCancelled(targetId);
+    }).then((unlisten) => {
+      unlistenCancelled = unlisten;
+    });
+
+    return () => {
+      if (unlistenCancelled) {
+        unlistenCancelled();
+      }
+    };
+  }, [handleProbeCancelled]);
+
   // Calculate problem count
   const problemsCount = targets.filter((t) => {
     const res = probeResults[t.id];
@@ -225,6 +248,7 @@ export const App: React.FC = () => {
       <Header
         isProbingAll={isProbingAll}
         onProbeAll={probeAll}
+        onStopProbeAll={stopProbeAll}
         testedCount={testedCount}
         totalCount={totalCount}
       />
@@ -247,8 +271,11 @@ export const App: React.FC = () => {
             categories={categories}
             probeResults={probeResults}
             probingTargets={probingTargets}
+            probeLoops={probeLoops}
             onSelectTarget={handleSelectTarget}
             onRetestTarget={probeOne}
+            onStopTarget={(id) => stopProbeLoop(id)}
+            onStartUntilSuccess={(id) => startProbeLoopUntilSuccess(id, 5000)}
             onTraceTarget={handleTraceTarget}
           />
         )}
@@ -278,8 +305,13 @@ export const App: React.FC = () => {
             target={selectedTarget}
             result={selectedResult}
             isProbing={!!probingTargets[selectedTarget.id]}
+            isLoopRunning={!!probeLoops[selectedTarget.id]?.running}
             onClose={() => setSelectedTargetId(null)}
             onRetest={() => probeOne(selectedTarget.id)}
+            onStopProbe={() => stopProbeLoop(selectedTarget.id)}
+            onStartLoop={(intervalMs) => startProbeLoop(selectedTarget.id, intervalMs)}
+            onStartLoopUntilSuccess={(intervalMs) => startProbeLoopUntilSuccess(selectedTarget.id, intervalMs)}
+            onStopLoop={() => stopProbeLoop(selectedTarget.id)}
             initialTab={drawerInitialTab}
           />
         )}

@@ -655,7 +655,7 @@ async fn run_test(
         let no_unicode = cli.no_unicode;
         let spinner_clone = spinner.clone();
 
-        let res = engine.probe_one_with_events(target, move |event| {
+        let res = engine.probe_one_with_events(target, Arc::new(AtomicBool::new(false)), move |event| {
             if is_quiet || !is_human { return; }
             match event {
                 ProbeEvent::StageStarted { stage, .. } => {
@@ -812,7 +812,7 @@ async fn run_test(
                 };
 
                 let pb_clone = pb.clone();
-                let res = eng.probe_one_with_events(&target, move |event| {
+                let res = eng.probe_one_with_events(&target, Arc::new(AtomicBool::new(false)), move |event| {
                     if is_quiet { return; }
                     if let ProbeEvent::StageStarted { stage, .. } = event {
                         if let Some(ref p) = pb_clone {
