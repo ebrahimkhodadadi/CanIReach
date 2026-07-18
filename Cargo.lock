@@ -500,7 +500,7 @@ dependencies = [
 
 [[package]]
 name = "canireach-core"
-version = "1.0.0-rc.11"
+version = "1.0.0-rc.12"
 dependencies = [
  "chrono",
  "reqwest 0.12.28",
@@ -4236,7 +4236,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-app"
-version = "1.0.0-rc.11"
+version = "1.0.0-rc.12"
 dependencies = [
  "canireach-core",
  "chrono",
