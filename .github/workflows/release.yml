@@ -45,8 +45,35 @@ jobs:
           fi
           echo "✅ Tag and package version are consistent: $PKG_VERSION"
 
-  build-desktop:
+  create-release:
     needs: validate
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create.outputs.id }}
+      upload_url: ${{ steps.create.outputs.upload_url }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Draft Release
+        id: create
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          IS_PRERELEASE=""
+          TAG_NAME="${{ github.ref_name }}"
+          if echo "$TAG_NAME" | grep -qE '(-rc|-beta|-alpha)'; then
+            IS_PRERELEASE="--prerelease"
+          fi
+          gh release create "$TAG_NAME" \
+            --title "CanIReach $TAG_NAME" \
+            --notes "See CHANGELOG.md for details." \
+            --draft \
+            $IS_PRERELEASE
+          echo "✅ Draft release created for $TAG_NAME"
+
+  build-desktop:
+    needs: [validate, create-release]
     strategy:
       fail-fast: false
       matrix:
@@ -129,19 +156,44 @@ jobs:
             echo "APPLE_TEAM_ID=${{ secrets.APPLE_TEAM_ID }}" >> $GITHUB_ENV
           fi
 
-      - name: Diagnostic Manual Build
+      - name: Build Tauri Desktop App
         run: npm run tauri build
 
-      - name: Build Tauri Desktop Package
-        uses: tauri-apps/tauri-action@v0
+      - name: Upload Desktop Bundles to GitHub Release
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'CanIReach ${{ github.ref_name }}'
-          releaseBody: 'See CHANGELOG.md for details.'
-          releaseDraft: true
-          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
+        run: |
+          TAG_NAME="${{ github.ref_name }}"
+          echo "Uploading desktop bundles to release: $TAG_NAME"
+          
+          # Collect all bundle files
+          shopt -s nullglob
+          FILES=()
+          FILES+=(src-tauri/target/release/bundle/msi/*.msi)
+          FILES+=(src-tauri/target/release/bundle/nsis/*.exe)
+          FILES+=(src-tauri/target/release/bundle/dmg/*.dmg)
+          FILES+=(src-tauri/target/release/bundle/deb/*.deb)
+          FILES+=(src-tauri/target/release/bundle/appimage/*.AppImage)
+          FILES+=(src-tauri/target/release/bundle/appimage/*.AppImage.tar.gz)
+          FILES+=(src-tauri/target/release/bundle/macos/*.app.tar.gz)
+          
+          # Also grab any .sig files for updater
+          FILES+=(src-tauri/target/release/bundle/msi/*.msi.sig)
+          FILES+=(src-tauri/target/release/bundle/nsis/*.exe.sig)
+          FILES+=(src-tauri/target/release/bundle/appimage/*.AppImage.tar.gz.sig)
+          FILES+=(src-tauri/target/release/bundle/macos/*.app.tar.gz.sig)
+          
+          if [ ${#FILES[@]} -eq 0 ]; then
+            echo "⚠️ No bundle files found to upload"
+            exit 0
+          fi
+          
+          for f in "${FILES[@]}"; do
+            echo "  Uploading: $(basename "$f")"
+            gh release upload "$TAG_NAME" "$f" --clobber
+          done
+          echo "✅ Uploaded ${#FILES[@]} desktop bundle file(s)"
 
       - name: Upload Desktop Bundles as GHA Artifacts
         if: always()
@@ -157,7 +209,7 @@ jobs:
             src-tauri/target/release/bundle/appimage/*.AppImage
 
   build-cli:
-    needs: validate
+    needs: [validate, create-release]
     strategy:
       fail-fast: false
       matrix:
@@ -235,6 +287,18 @@ jobs:
           tar -czf "$ARCHIVE_NAME" -C dist-cli/ .
           echo "Created CLI archive: $ARCHIVE_NAME"
 
+      - name: Upload CLI Archive to GitHub Release
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="${{ github.ref_name }}"
+          echo "Uploading CLI archive to release: $TAG_NAME"
+          for f in canireach-v*; do
+            echo "  Uploading: $f"
+            gh release upload "$TAG_NAME" "$f" --clobber
+          done
+
       - name: Upload Standalone CLI Archive
         uses: actions/upload-artifact@v4
         with:
@@ -251,7 +315,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    needs: [build-desktop, build-cli]
+    needs: [create-release, build-desktop, build-cli]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -311,15 +375,19 @@ jobs:
           echo "Generated Checksums:"
           cat checksums.txt
 
-      - name: Upload Standalone CLI Archives to GitHub Release
+      - name: Upload Checksums to GitHub Release
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Uploading CLI archives and checksums to Release: ${{ github.ref_name }}"
-          # Find existing draft release or create one
-          gh release upload ${{ github.ref_name }} cli-archives/* --clobber
-          
-          # Finalize release out of draft status
+          echo "Uploading checksums to Release: ${{ github.ref_name }}"
+          gh release upload ${{ github.ref_name }} cli-archives/checksums.txt --clobber
+
+      - name: Finalize Release
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
           IS_PRERELEASE=${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
           gh release edit ${{ github.ref_name }} --draft=false --prerelease=$IS_PRERELEASE
+          echo "✅ Release ${{ github.ref_name }} finalized!"
