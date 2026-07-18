@@ -81,23 +81,35 @@ jobs:
       - name: Install Frontend Dependencies
         run: npm ci
 
-      - name: Disable signed updater if secrets are missing
+      - name: Prepare Tauri Configuration for Build
         shell: bash
+        env:
+          HAS_SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
         run: |
-          if [ -z "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ]; then
-            echo "Signing private key is missing. Disabling updater signatures to produce unsigned build..."
-            node -e "
-              const fs = require('fs');
-              const path = './src-tauri/tauri.conf.json';
-              const config = JSON.parse(fs.readFileSync(path, 'utf8'));
+          node -e "
+            const fs = require('fs');
+            const path = './src-tauri/tauri.conf.json';
+            const config = JSON.parse(fs.readFileSync(path, 'utf8'));
+            
+            const originalVersion = config.version;
+            if (config.version.includes('-')) {
+              const parts = config.version.split('-');
+              const preRelease = parts[1];
+              const numbersOnly = preRelease.replace(/\D/g, '');
+              const cleanPreRelease = numbersOnly || '0';
+              config.version = parts[0] + '-' + cleanPreRelease;
+            }
+            console.log('Sanitized version from ' + originalVersion + ' to ' + config.version);
+            
+            if (process.env.HAS_SIGNING_KEY !== 'true') {
               if (config.plugins && config.plugins.updater) {
                 delete config.plugins.updater;
+                console.log('Deleted updater plugin config (unsigned build)');
               }
-              fs.writeFileSync(path, JSON.stringify(config, null, 2), 'utf8');
-            "
-          else
-            echo "Signing private key is present. Building signed update bundles..."
-          fi
+            }
+            
+            fs.writeFileSync(path, JSON.stringify(config, null, 2), 'utf8');
+          "
 
       - name: Build Tauri Desktop Package
         uses: tauri-apps/tauri-action@v0
@@ -113,7 +125,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'CanIReach v__VERSION__'
+          releaseName: 'CanIReach ${{ github.ref_name }}'
           releaseBody: 'See CHANGELOG.md for details.'
           releaseDraft: true
           prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
