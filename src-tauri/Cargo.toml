@@ -1,0 +1,45 @@
+[package]
+name = "tauri-app"
+version = "1.0.0-rc.1"
+description = "A Tauri App"
+authors = ["you"]
+edition = "2021"
+default-run = "tauri-app"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "tauri_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-opener = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-autostart = "2"
+dirs = "4.0.0"
+tauri-plugin-updater = "2"
+indicatif = "0.17.8"
+console = "0.15.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+canireach-core = { path = "../crates/canireach-core" }
+tokio = { version = "1", features = ["full"] }
+thiserror = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+reqwest = { version = "0.12", default-features = false, features = ["stream"] }
+rusqlite = { version = "0.31.0", features = ["bundled"] }
+uuid = { version = "1.8", features = ["v4", "serde"] }
+futures-util = "0.3"
+clap = { version = "4.4", features = ["derive"] }
+clap_complete = "4.4"
+fs2 = "0.4.3"
+zip = { version = "0.6", default-features = false, features = ["deflate"] }
+
+

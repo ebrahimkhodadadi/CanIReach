@@ -1,0 +1,68 @@
+name: Quality Gate CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Frontend Dependencies
+        run: npm ci
+
+      - name: Frontend Typecheck and Build
+        run: npm run build
+
+      - name: Frontend Unit Tests
+        run: npm run test
+
+  rust-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install system dependencies (Tauri development on Linux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Rust Dependencies Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> ../target"
+
+      - name: Verify formatting
+        run: cargo fmt --all -- --check
+
+      - name: Workspace Cargo Check
+        run: cargo check --all-targets
+
+      - name: Workspace Cargo Test
+        run: cargo test --all-targets
+
+      - name: Workspace Cargo Clippy
+        run: cargo clippy --all-targets -- -D warnings

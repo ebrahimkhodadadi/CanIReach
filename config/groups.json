@@ -1,0 +1,18 @@
+[
+  {
+    "id": "google-services",
+    "name": "Google Services",
+    "description": "Google development services and APIs",
+    "color": "#4285F4",
+    "created_at": "2026-07-18T14:08:19.607480600+00:00",
+    "updated_at": "2026-07-18T14:08:19.607513400+00:00"
+  },
+  {
+    "id": "package-managers",
+    "name": "Package Managers",
+    "description": "Crates, NPM, Pub registries",
+    "color": "#34A853",
+    "created_at": "2026-07-18T14:08:19.607514700+00:00",
+    "updated_at": "2026-07-18T14:08:19.607515300+00:00"
+  }
+]

@@ -1,0 +1,287 @@
+{
+  "schema_version": 1,
+  "targets": [
+    {
+      "category": "Google Services",
+      "created_at": "2026-07-17T14:45:51.023131700+00:00",
+      "description": null,
+      "diagnostic_overrides": null,
+      "enabled": true,
+      "group_ids": [],
+      "id": "storage.googleapis.com",
+      "name": "storage.googleapis.com",
+      "network_profile_id": null,
+      "tags": [],
+      "updated_at": "2026-07-17T14:45:51.023185500+00:00",
+      "url": "storage.googleapis.com"
+    },
+    {
+      "category": "Google Services",
+      "created_at": "2026-07-17T14:45:51.023193300+00:00",
+      "description": null,
+      "diagnostic_overrides": null,
+      "enabled": true,
+      "group_ids": [],
+      "id": "dl.google.com",
+      "name": "dl.google.com",
+      "network_profile_id": null,
+      "tags": [],
+      "updated_at": "2026-07-17T14:45:51.023194400+00:00",
+      "url": "dl.google.com"
+    },
+    {
+      "category": "Google Services",
+      "created_at": "2026-07-17T14:45:51.023196400+00:00",
+      "description": null,
+      "diagnostic_overrides": null,
+      "enabled": true,
+      "group_ids": [],
+      "id": "maven.google.com",
+      "name": "maven.google.com",
+      "network_profile_id": null,
+      "tags": [],
+      "updated_at": "2026-07-17T14:45:51.023197200+00:00",
+      "url": "maven.google.com"
+    },
+    {
+      "category": "Google Services",
+      "created_at": "2026-07-17T14:45:51.023202300+00:00",
+      "description": null,
+      "diagnostic_overrides": null,
+      "enabled": true,
+      "group_ids": [],
+      "id": "play.googleapis.com",
+      "name": "play.googleapis.com",
+      "network_profile_id": null,
+      "tags": [],
+      "updated_at": "2026-07-17T14:45:51.023203400+00:00",
+      "url": "play.googleapis.com"
+    },
+    {
+      "category": "Google Services",
+      "created_at": "2026-07-17T14:45:51.023205200+00:00",
+      "description": null,
+      "diagnostic_overrides": null,
+      "enabled": true,
+      "group_ids": [],
+      "id": "firebase.google.com",
+      "name": "firebase.google.com",
+      "network_profile_id": null,
+      "tags": [],
+      "updated_at": "2026-07-17T14:45:51.023206300+00:00",
+      "url": "firebase.google.com"
+    },
+    {
+      "category": "Google Services",
+      "created_at": "2026-07-17T14:45:51.023208500+00:00",
+      "description": null,
+      "diagnostic_overrides": null,
+      "enabled": true,
+      "group_ids": [],
+      "id": "fonts.googleapis.com",
+      "name": "fonts.googleapis.com",
+      "network_profile_id": null,
+      "tags": [],
+      "updated_at": "2026-07-17T14:45:51.023209300+00:00",
+      "url": "fonts.googleapis.com"
+    },
+    {
+      "category": "Package Managers",
+      "created_at": "2026-07-17T14:45:51.023223500+00:00",
+      "description": null,
+      "diagnostic_overrides": null,
+      "enabled": true,
+      "group_ids": [],
+      "id": "pub.dev",
+      "name": "pub.dev",
+      "network_profile_id": null,
+      "tags": [],
+      "updated_at": "2026-07-17T14:45:51.023224700+00:00",
+      "url": "pub.dev"
+    },
+    {
+      "category": "Package Managers",
+      "created_at": "2026-07-17T14:45:51.023229100+00:00",
+      "description": null,
+      "diagnostic_overrides": null,
+      "enabled": true,
+      "group_ids": [],
+      "id": "registry.npmjs.org",
+      "name": "registry.npmjs.org",
+      "network_profile_id": null,
+      "tags": [],
+      "updated_at": "2026-07-17T14:45:51.023230100+00:00",
+      "url": "registry.npmjs.org"
+    },
+    {
+      "category": "Package Managers",
+      "created_at": "2026-07-17T14:45:51.023232+00:00",
+      "description": null,
+      "diagnostic_overrides": null,
+      "enabled": true,
+      "group_ids": [],
+      "id": "crates.io",
+      "name": "crates.io",
+      "network_profile_id": null,
+      "tags": [],
+      "updated_at": "2026-07-17T14:45:51.023233+00:00",
+      "url": "crates.io"
+    },
+    {
+      "category": "Build Tools",
+      "created_at": "2026-07-17T14:45:51.023241100+00:00",
+      "description": null,
+      "diagnostic_overrides": null,
+      "enabled": true,
+      "group_ids": [],
+      "id": "services.gradle.org",
+      "name": "services.gradle.org",
+      "network_profile_id": null,
+      "tags": [],
+      "updated_at": "2026-07-17T14:45:51.023242200+00:00",
+      "url": "services.gradle.org"
+    },
+    {
+      "category": "Build Tools",
+      "created_at": "2026-07-17T14:45:51.023249300+00:00",
+      "description": null,
+      "diagnostic_overrides": null,
+      "enabled": true,
+      "group_ids": [],
+      "id": "nodejs.org",
+      "name": "nodejs.org",
+      "network_profile_id": null,
+      "tags": [],
+      "updated_at": "2026-07-17T14:45:51.023250+00:00",
+      "url": "nodejs.org"
+    },
+    {
+      "category": "Git & Source",
+      "created_at": "2026-07-17T14:45:51.023251500+00:00",
+      "description": null,
+      "diagnostic_overrides": null,
+      "enabled": true,
+      "group_ids": [],
+      "id": "github.com",
+      "name": "github.com",
+      "network_profile_id": null,
+      "tags": [],
+      "updated_at": "2026-07-17T14:45:51.023253+00:00",
+      "url": "github.com"
+    },
+    {
+      "category": "Git & Source",
+      "created_at": "2026-07-17T14:45:51.023254800+00:00",
+      "description": null,
+      "diagnostic_overrides": null,
+      "enabled": true,
+      "group_ids": [],
+      "id": "raw.githubusercontent.com",
+      "name": "raw.githubusercontent.com",
+      "network_profile_id": null,
+      "tags": [],
+      "updated_at": "2026-07-17T14:45:51.023255500+00:00",
+      "url": "raw.githubusercontent.com"
+    },
+    {
+      "category": "Git & Source",
+      "created_at": "2026-07-17T14:45:51.023256800+00:00",
+      "description": null,
+      "diagnostic_overrides": null,
+      "enabled": true,
+      "group_ids": [],
+      "id": "api.github.com",
+      "name": "api.github.com",
+      "network_profile_id": null,
+      "tags": [],
+      "updated_at": "2026-07-18T13:32:06.908434900+00:00",
+      "url": "api.github.com"
+    },
+    {
+      "category": "Containers",
+      "created_at": "2026-07-17T14:45:51.023262200+00:00",
+      "description": null,
+      "diagnostic_overrides": null,
+      "enabled": true,
+      "group_ids": [],
+      "id": "docker.io",
+      "name": "docker.io",
+      "network_profile_id": null,
+      "tags": [],
+      "updated_at": "2026-07-17T14:45:51.023263+00:00",
+      "url": "docker.io"
+    },
+    {
+      "category": "Containers",
+      "created_at": "2026-07-17T14:45:51.023264100+00:00",
+      "description": null,
+      "diagnostic_overrides": null,
+      "enabled": true,
+      "group_ids": [],
+      "id": "ghcr.io",
+      "name": "ghcr.io",
+      "network_profile_id": null,
+      "tags": [],
+      "updated_at": "2026-07-17T14:45:51.023264800+00:00",
+      "url": "ghcr.io"
+    }
+  ],
+  "groups": [
+    {
+      "color": "#4285F4",
+      "created_at": "2026-07-18T14:08:19.607480600+00:00",
+      "description": "Google development services and APIs",
+      "id": "google-services",
+      "name": "Google Services",
+      "updated_at": "2026-07-18T14:08:19.607513400+00:00"
+    },
+    {
+      "color": "#34A853",
+      "created_at": "2026-07-18T14:08:19.607514700+00:00",
+      "description": "Crates, NPM, Pub registries",
+      "id": "package-managers",
+      "name": "Package Managers",
+      "updated_at": "2026-07-18T14:08:19.607515300+00:00"
+    }
+  ],
+  "profiles": [
+    {
+      "created_at": "2026-07-18T14:05:26.989463500+00:00",
+      "description": "Use current system routing, DNS, and proxy configurations",
+      "dns": {
+        "mode": "system",
+        "servers": []
+      },
+      "id": "system-default",
+      "interface": {
+        "interface_id": null,
+        "mode": "system",
+        "source_ipv4": null,
+        "source_ipv6": null
+      },
+      "ip_preference": "system",
+      "is_default": true,
+      "name": "System Default",
+      "preflight": {
+        "endpoints": [
+          "https://www.google.com",
+          "https://www.cloudflare.com"
+        ],
+        "min_success_count": 1,
+        "run_preflight": true,
+        "timeout_ms": 3000
+      },
+      "proxy": {
+        "auth_credential_id": null,
+        "auth_username": null,
+        "bypass": null,
+        "custom_host": null,
+        "custom_port": null,
+        "custom_type": null,
+        "mode": "system"
+      },
+      "updated_at": "2026-07-18T14:05:26.989546800+00:00"
+    }
+  ],
+  "schedules": []
+}

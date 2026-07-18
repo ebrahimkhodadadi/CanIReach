@@ -1,0 +1,36 @@
+name: 💡 Feature Request
+description: Propose a new feature, diagnostic layer, or default endpoint for CanIReach
+title: "[FEATURE] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a feature! Please describe your request clearly below.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Is your feature request related to a problem?
+      description: A clear and concise description of what the problem is.
+      placeholder: E.g., It is difficult to analyze DNS resolution times because they are only shown in logs.
+    validations:
+      required: false
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution or capability you would like added.
+      placeholder: E.g., Add a dedicated "DNS timing" column to the targets list.
+    validations:
+      required: true
+  - type: textarea
+    id: endpoints
+    attributes:
+      label: Endpoint Suggestions (if suggesting targets)
+      description: If suggesting new default targets, list the domain URLs, categories, and target details.
+      placeholder: |
+        - Name: PyPI Package Index
+          URL: https://pypi.org
+          Category: Python
+    validations:
+      required: false

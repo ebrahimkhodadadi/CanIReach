@@ -1,0 +1,280 @@
+name: Production Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Version Verification
+        run: node scripts/sync-version.cjs --check
+
+      - name: Verify Tag Matches package.json Version
+        shell: bash
+        run: |
+          TAG_VERSION=${GITHUB_REF_NAME#v}
+          PKG_VERSION=$(node -e "console.log(require('./package.json').version)")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "Error: Git tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION)"
+            exit 1
+          fi
+          echo "✅ Tag and package version are consistent: $PKG_VERSION"
+
+  build-desktop:
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install system dependencies (Tauri on Linux)
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> ../target"
+
+      - name: Install Frontend Dependencies
+        run: npm ci
+
+      - name: Build Tauri Desktop Package
+        uses: tauri-apps/tauri-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'CanIReach v__VERSION__'
+          releaseBody: 'See CHANGELOG.md for details.'
+          releaseDraft: true
+          prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
+
+  build-cli:
+    needs: validate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            runner: windows-latest
+            archive_type: zip
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-latest
+            archive_type: tar.gz
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-latest
+            archive_type: tar.gz
+          - target: x86_64-apple-darwin
+            runner: macos-latest
+            archive_type: tar.gz
+          - target: aarch64-apple-darwin
+            runner: macos-latest
+            archive_type: tar.gz
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Cross Linker for Linux ARM64
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Install Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> ../target"
+
+      - name: Compile CLI Binary
+        shell: bash
+        run: |
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
+            CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc cargo build --release --target ${{ matrix.target }} --manifest-path src-tauri/Cargo.toml --bin canireach
+          else
+            cargo build --release --target ${{ matrix.target }} --manifest-path src-tauri/Cargo.toml --bin canireach
+          fi
+
+      - name: Optimize Binaries (Strip symbols)
+        shell: bash
+        run: |
+          if [ "${{ matrix.target }}" = "x86_64-unknown-linux-gnu" ]; then
+            strip target/x86_64-unknown-linux-gnu/release/canireach
+          elif [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
+            aarch64-linux-gnu-strip target/aarch64-unknown-linux-gnu/release/canireach
+          fi
+
+      - name: Package CLI Archive (Windows)
+        if: matrix.archive_type == 'zip'
+        shell: pwsh
+        run: |
+          $Version = "${{ github.ref_name }}".TrimStart('v')
+          $ArchiveName = "canireach-v${Version}-${{ matrix.target }}.zip"
+          $BinPath = "target\${{ matrix.target }}\release\canireach.exe"
+          New-Item -ItemType Directory -Path "dist-cli" -Force
+          Copy-Item -Path $BinPath -Destination "dist-cli\canireach.exe"
+          if (Test-Path -Path "LICENSE") { Copy-Item -Path "LICENSE" -Destination "dist-cli\LICENSE" }
+          if (Test-Path -Path "README.md") { Copy-Item -Path "README.md" -Destination "dist-cli\README.md" }
+          Compress-Archive -Path "dist-cli\*" -DestinationPath $ArchiveName -Force
+          Write-Host "Created CLI archive: $ArchiveName"
+
+      - name: Package CLI Archive (Unix)
+        if: matrix.archive_type == 'tar.gz'
+        shell: bash
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          ARCHIVE_NAME="canireach-v${VERSION}-${{ matrix.target }}.tar.gz"
+          mkdir -p dist-cli
+          cp target/${{ matrix.target }}/release/canireach dist-cli/
+          chmod +x dist-cli/canireach
+          if [ -f "LICENSE" ]; then cp LICENSE dist-cli/; fi
+          if [ -f "README.md" ]; then cp README.md dist-cli/; fi
+          tar -czf "$ARCHIVE_NAME" -C dist-cli/ .
+          echo "Created CLI archive: $ARCHIVE_NAME"
+
+      - name: Upload Standalone CLI Archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-archive-${{ matrix.target }}
+          path: canireach-v*
+
+      - name: Upload Raw Binary for NPM builder
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-raw-binary-${{ matrix.target }}
+          path: |
+            target/${{ matrix.target }}/release/canireach
+            target/${{ matrix.target }}/release/canireach.exe
+          if-no-files-found: error
+
+  publish:
+    needs: [build-desktop, build-cli]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Create Workspaces Directories
+        run: |
+          mkdir -p cli-archives
+          mkdir -p raw-binaries
+
+      - name: Download CLI Archives
+        uses: actions/download-artifact@v4
+        with:
+          path: cli-archives
+          pattern: cli-archive-*
+          merge-multiple: true
+
+      - name: Download Raw Binaries for NPM packaging
+        uses: actions/download-artifact@v4
+        with:
+          path: raw-binaries-temp
+          pattern: cli-raw-binary-*
+
+      - name: Organize Raw Binaries for NPM builder
+        shell: bash
+        run: |
+          # Map downloaded targets into a flat layout
+          cp raw-binaries-temp/cli-raw-binary-x86_64-pc-windows-msvc/target/x86_64-pc-windows-msvc/release/canireach.exe raw-binaries/canireach-x86_64-pc-windows-msvc.exe || true
+          cp raw-binaries-temp/cli-raw-binary-x86_64-unknown-linux-gnu/target/x86_64-unknown-linux-gnu/release/canireach raw-binaries/canireach-x86_64-unknown-linux-gnu || true
+          cp raw-binaries-temp/cli-raw-binary-aarch64-unknown-linux-gnu/target/aarch64-unknown-linux-gnu/release/canireach raw-binaries/canireach-aarch64-unknown-linux-gnu || true
+          cp raw-binaries-temp/cli-raw-binary-x86_64-apple-darwin/target/x86_64-apple-darwin/release/canireach raw-binaries/canireach-x86_64-apple-darwin || true
+          cp raw-binaries-temp/cli-raw-binary-aarch64-apple-darwin/target/aarch64-apple-darwin/release/canireach raw-binaries/canireach-aarch64-apple-darwin || true
+          ls -R raw-binaries
+
+      - name: Build NPM Wrapper Packages
+        run: node scripts/build-npm.cjs --binaries-dir raw-binaries
+
+      - name: Publish NPM Packages
+        if: env.NPM_TOKEN != ''
+        run: node scripts/publish-npm.cjs
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Compile SHA-256 Checksums
+        shell: bash
+        run: |
+          cd cli-archives
+          sha256sum canireach-v* > checksums.txt
+          echo "Generated Checksums:"
+          cat checksums.txt
+
+      - name: Upload Standalone CLI Archives to GitHub Release
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Uploading CLI archives and checksums to Release: ${{ github.ref_name }}"
+          # Find existing draft release or create one
+          gh release upload ${{ github.ref_name }} cli-archives/* --clobber
+          
+          # Finalize release out of draft status
+          IS_PRERELEASE=${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
+          gh release edit ${{ github.ref_name }} --draft=false --prerelease=$IS_PRERELEASE

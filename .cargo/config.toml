@@ -1,0 +1,5 @@
+[registries.crates-io]
+protocol = "sparse"
+
+# [http]
+# proxy = "http://127.0.0.1:10888"

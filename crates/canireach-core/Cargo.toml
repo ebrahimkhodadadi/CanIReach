@@ -1,0 +1,16 @@
+[package]
+name = "canireach-core"
+version = "1.0.0-rc.1"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json", "default-tls"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "1.0"
+rustls = { version = "0.21", features = ["dangerous_configuration"] }
+webpki-roots = "0.25"
+x509-parser = "0.16"
+
