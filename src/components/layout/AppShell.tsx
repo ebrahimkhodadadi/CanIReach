@@ -61,7 +61,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   ];
 
   return (
-    <div className="flex min-h-screen bg-[var(--color-bg-app)] text-[var(--color-text-primary)] font-sans select-none overflow-hidden">
+    <div className="flex h-screen w-screen bg-[var(--color-bg-app)] text-[var(--color-text-primary)] font-sans select-none overflow-hidden">
       {/* Sidebar */}
       <aside 
         className={`bg-[var(--color-bg-sidebar)] border-r border-[var(--color-border-default)] flex flex-col shrink-0 transition-all duration-200 relative ${
@@ -149,8 +149,10 @@ export const AppShell: React.FC<AppShellProps> = ({
       </aside>
 
       {/* Main Workspace Wrapper */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-        {children}
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 h-full overflow-hidden relative">
+        <div className="flex-1 min-h-0 overflow-auto">
+          {children}
+        </div>
       </div>
     </div>
   );
