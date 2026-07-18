@@ -83,9 +83,8 @@ jobs:
 
       - name: Prepare Tauri Configuration for Build
         shell: bash
-        env:
-          HAS_SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
         run: |
+          # 1. Sanitize version in tauri.conf.json
           node -e "
             const fs = require('fs');
             const path = './src-tauri/tauri.conf.json';
@@ -101,7 +100,7 @@ jobs:
             }
             console.log('Sanitized version from ' + originalVersion + ' to ' + config.version);
             
-            if (process.env.HAS_SIGNING_KEY !== 'true') {
+            if (!'${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}') {
               if (config.plugins && config.plugins.updater) {
                 delete config.plugins.updater;
                 console.log('Deleted updater plugin config (unsigned build)');
@@ -110,19 +109,37 @@ jobs:
             
             fs.writeFileSync(path, JSON.stringify(config, null, 2), 'utf8');
           "
+          
+          # 2. Inject signing variables into environment dynamically if they are not empty
+          if [ -n "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ]; then
+            echo "TAURI_SIGNING_PRIVATE_KEY=${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" >> $GITHUB_ENV
+          fi
+          if [ -n "${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}" ]; then
+            echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD=${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}" >> $GITHUB_ENV
+          fi
+          if [ -n "${{ secrets.APPLE_CERTIFICATE }}" ]; then
+            echo "APPLE_CERTIFICATE=${{ secrets.APPLE_CERTIFICATE }}" >> $GITHUB_ENV
+          fi
+          if [ -n "${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" ]; then
+            echo "APPLE_CERTIFICATE_PASSWORD=${{ secrets.APPLE_CERTIFICATE_PASSWORD }}" >> $GITHUB_ENV
+          fi
+          if [ -n "${{ secrets.APPLE_SIGNING_IDENTITY }}" ]; then
+            echo "APPLE_SIGNING_IDENTITY=${{ secrets.APPLE_SIGNING_IDENTITY }}" >> $GITHUB_ENV
+          fi
+          if [ -n "${{ secrets.APPLE_ID }}" ]; then
+            echo "APPLE_ID=${{ secrets.APPLE_ID }}" >> $GITHUB_ENV
+          fi
+          if [ -n "${{ secrets.APPLE_PASSWORD }}" ]; then
+            echo "APPLE_PASSWORD=${{ secrets.APPLE_PASSWORD }}" >> $GITHUB_ENV
+          fi
+          if [ -n "${{ secrets.APPLE_TEAM_ID }}" ]; then
+            echo "APPLE_TEAM_ID=${{ secrets.APPLE_TEAM_ID }}" >> $GITHUB_ENV
+          fi
 
       - name: Build Tauri Desktop Package
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'CanIReach ${{ github.ref_name }}'
@@ -140,9 +157,6 @@ jobs:
             runner: windows-latest
             archive_type: zip
           - target: x86_64-unknown-linux-gnu
-            runner: ubuntu-latest
-            archive_type: tar.gz
-          - target: aarch64-unknown-linux-gnu
             runner: ubuntu-latest
             archive_type: tar.gz
           - target: x86_64-apple-darwin
@@ -163,12 +177,6 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      - name: Install Cross Linker for Linux ARM64
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-
       - name: Install system dependencies (Tauri on Linux)
         if: runner.os == 'Linux'
         run: |
@@ -181,21 +189,13 @@ jobs:
           workspaces: "./src-tauri -> ../target"
 
       - name: Compile CLI Binary
-        shell: bash
-        run: |
-          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
-            CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc cargo build --release --target ${{ matrix.target }} --manifest-path src-tauri/Cargo.toml --bin canireach
-          else
-            cargo build --release --target ${{ matrix.target }} --manifest-path src-tauri/Cargo.toml --bin canireach
-          fi
+        run: cargo build --release --target ${{ matrix.target }} --manifest-path src-tauri/Cargo.toml --bin canireach
 
       - name: Optimize Binaries (Strip symbols)
         shell: bash
         run: |
           if [ "${{ matrix.target }}" = "x86_64-unknown-linux-gnu" ]; then
             strip target/x86_64-unknown-linux-gnu/release/canireach
-          elif [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
-            aarch64-linux-gnu-strip target/aarch64-unknown-linux-gnu/release/canireach
           fi
 
       - name: Package CLI Archive (Windows)
