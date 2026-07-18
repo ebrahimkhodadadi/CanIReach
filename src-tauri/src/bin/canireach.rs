@@ -814,13 +814,10 @@ async fn run_test(
                 let pb_clone = pb.clone();
                 let res = eng.probe_one_with_events(&target, move |event| {
                     if is_quiet { return; }
-                    match event {
-                        ProbeEvent::StageStarted { stage, .. } => {
-                            if let Some(ref p) = pb_clone {
-                                p.set_message(format!("{} : {}", target_url_redacted_for_event, stage.to_uppercase()));
-                            }
+                    if let ProbeEvent::StageStarted { stage, .. } = event {
+                        if let Some(ref p) = pb_clone {
+                            p.set_message(format!("{} : {}", target_url_redacted_for_event, stage.to_uppercase()));
                         }
-                        _ => {}
                     }
                 }).await;
 
