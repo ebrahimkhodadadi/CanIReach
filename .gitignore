@@ -34,3 +34,5 @@ config/history.db*
 config/scheduler.lock
 
 release.md
+
+tauri.conf.json
