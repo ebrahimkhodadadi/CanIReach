@@ -1,5 +1,6 @@
 pub mod alerts;
 pub mod analyzer;
+pub mod continuous;
 pub mod incidents;
 pub mod models;
 pub mod observer;

@@ -11,26 +11,28 @@ pub mod traceroute;
 
 use app_state::AppState;
 use commands::{
-    acknowledge_incident, cancel_all_probes, cancel_investigation, cancel_probe, cancel_traceroute,
-    check_for_updates, create_block_page_signature, create_investigation,
-    create_monitoring_schedule, create_network_profile, create_target, create_target_group,
-    delete_block_page_signature, delete_investigation, delete_monitoring_history,
-    delete_monitoring_schedule, delete_network_profile, delete_target, delete_target_group,
-    download_and_install_update, duplicate_monitoring_schedule, duplicate_target,
-    get_analyzer_samples, get_analyzer_snapshot, get_daily_data_budget, get_history_summary,
-    get_investigation, get_network_operation, get_network_profiles, get_privacy_expectation,
-    get_scheduler_status, get_settings, get_target_groups, get_targets, get_update_state,
-    list_block_page_signatures, list_incidents, list_investigations, list_monitoring_schedules,
+    acknowledge_incident, add_domain_to_targets, cancel_all_probes, cancel_investigation,
+    cancel_probe, cancel_traceroute, check_for_updates, clear_network_operations,
+    create_block_page_signature, create_investigation, create_monitoring_schedule,
+    create_network_profile, create_target, create_target_group, delete_block_page_signature,
+    delete_investigation, delete_monitoring_history, delete_monitoring_schedule,
+    delete_network_profile, delete_target, delete_target_group, download_and_install_update,
+    duplicate_monitoring_schedule, duplicate_target, get_analyzer_samples, get_analyzer_snapshot,
+    get_continuous_monitor_history, get_continuous_monitor_status, get_daily_data_budget,
+    get_domain_suggestions, get_history_summary, get_investigation, get_network_operation,
+    get_network_profiles, get_privacy_expectation, get_scheduler_status, get_settings,
+    get_target_groups, get_targets, get_update_state, list_block_page_signatures,
+    list_continuous_monitors, list_incidents, list_investigations, list_monitoring_schedules,
     list_notifications, mark_all_notifications_as_read, mark_notification_as_read,
-    pause_scheduled_monitoring, probe_all, probe_one, query_monitoring_history,
-    query_network_operations, query_performance_history, query_privacy_assessments,
-    record_webrtc_candidate, reset_application, resume_scheduled_monitoring, run_schedule_now,
-    save_privacy_expectation, save_settings, set_default_network_profile,
-    set_monitoring_schedule_enabled, set_target_enabled, start_analyzer, start_investigation,
-    toggle_target_pin, reorder_targets,
-    start_performance_run, start_privacy_assessment, start_traceroute, stop_analyzer,
-    update_block_page_signature, update_monitoring_schedule, update_network_profile, update_target,
-    update_target_group,
+    pause_scheduled_monitoring, probe_all, probe_one, query_failed_requests,
+    query_monitoring_history, query_network_operations, query_performance_history,
+    query_privacy_assessments, record_webrtc_candidate, reset_application,
+    resume_scheduled_monitoring, run_schedule_now, save_privacy_expectation, save_settings,
+    set_default_network_profile, set_monitoring_schedule_enabled, set_target_enabled,
+    start_analyzer, start_continuous_monitor, start_investigation, start_performance_run,
+    start_privacy_assessment, start_traceroute, stop_analyzer, stop_continuous_monitor,
+    toggle_target_pin, reorder_targets, update_block_page_signature,
+    update_monitoring_schedule, update_network_profile, update_target, update_target_group,
 };
 use tauri::Manager;
 
@@ -314,7 +316,16 @@ pub fn run() {
             start_analyzer,
             stop_analyzer,
             get_analyzer_samples,
-            reset_application
+            reset_application,
+            clear_network_operations,
+            query_failed_requests,
+            get_domain_suggestions,
+            add_domain_to_targets,
+            start_continuous_monitor,
+            stop_continuous_monitor,
+            get_continuous_monitor_status,
+            list_continuous_monitors,
+            get_continuous_monitor_history
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

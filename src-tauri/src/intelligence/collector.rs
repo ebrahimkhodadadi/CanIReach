@@ -19,8 +19,13 @@ impl FailedRequestRegistry {
             "INSERT INTO network_operations (
                 id, run_id, batch_id, target_id, profile_id, operation_type, status,
                 started_at, completed_at, duration_ms, failure_code, summary,
-                request_metadata, response_metadata
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+                request_metadata, response_metadata,
+                source_type, visibility_level, host, registrable_domain,
+                destination_ip, destination_port, protocol, http_status_code,
+                failure_category, failure_reason, severity, occurrence_count,
+                first_seen_at, last_seen_at, related_target_id, metadata_json
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14,
+                       ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30)",
             params![
                 record.id,
                 record.run_id,
@@ -31,11 +36,27 @@ impl FailedRequestRegistry {
                 record.status,
                 record.started_at,
                 record.completed_at,
-                record.duration_ms,
+                record.duration_ms.map(|d| d as i64),
                 record.failure_code,
                 record.summary,
                 req_meta,
-                res_meta
+                res_meta,
+                record.source_type,
+                record.visibility_level,
+                record.host,
+                record.registrable_domain,
+                record.destination_ip,
+                record.destination_port.map(|p| p as i64),
+                record.protocol,
+                record.http_status_code.map(|c| c as i64),
+                record.failure_category,
+                record.failure_reason,
+                record.severity,
+                record.occurrence_count as i32,
+                record.first_seen_at,
+                record.last_seen_at,
+                record.related_target_id,
+                record.metadata_json,
             ],
         )?;
 
@@ -65,6 +86,9 @@ impl FailedRequestRegistry {
     ) -> Result<(), rusqlite::Error> {
         let run_id = result.run_id.clone();
         let target_id = result.target_id.clone();
+        let host = Some(extract_simple_domain(&result.target_url));
+        let registrable_domain = host.clone();
+        let now = chrono::Utc::now().to_rfc3339();
 
         // 1. Record DNS step if failed
         if let Some(ref dns) = result.dns {
@@ -75,6 +99,8 @@ impl FailedRequestRegistry {
                     result.target_url
                 );
                 let failure_code = dns.error.as_ref().map(|e| format!("{:?}", e.kind));
+                let failure_category = classify_failure_from_stage("dns", &dns.status);
+                let severity = classify_severity_from_failure(&failure_category);
 
                 let op = NetworkOperationRecord {
                     schema_version: 1,
@@ -96,6 +122,22 @@ impl FailedRequestRegistry {
                     summary,
                     request_metadata: None,
                     response_metadata: None,
+                    source_type: "canireach_probe".to_string(),
+                    visibility_level: "application_instrumented".to_string(),
+                    host: host.clone(),
+                    registrable_domain: registrable_domain.clone(),
+                    destination_ip: None,
+                    destination_port: None,
+                    protocol: None,
+                    http_status_code: None,
+                    failure_category,
+                    failure_reason: None,
+                    severity,
+                    occurrence_count: 1,
+                    first_seen_at: Some(dns.started_at.to_rfc3339()),
+                    last_seen_at: Some(dns.completed_at.map(|t| t.to_rfc3339()).unwrap_or_else(|| now.clone())),
+                    related_target_id: Some(target_id.clone()),
+                    metadata_json: None,
                 };
                 Self::record_operation(conn, op)?;
             }
@@ -110,6 +152,8 @@ impl FailedRequestRegistry {
                     result.target_url
                 );
                 let failure_code = tcp.error.as_ref().map(|e| format!("{:?}", e.kind));
+                let failure_category = classify_failure_from_stage("tcp", &tcp.status);
+                let severity = classify_severity_from_failure(&failure_category);
 
                 let op = NetworkOperationRecord {
                     schema_version: 1,
@@ -131,6 +175,22 @@ impl FailedRequestRegistry {
                     summary,
                     request_metadata: None,
                     response_metadata: None,
+                    source_type: "canireach_probe".to_string(),
+                    visibility_level: "application_instrumented".to_string(),
+                    host: host.clone(),
+                    registrable_domain: registrable_domain.clone(),
+                    destination_ip: None,
+                    destination_port: None,
+                    protocol: None,
+                    http_status_code: None,
+                    failure_category,
+                    failure_reason: None,
+                    severity,
+                    occurrence_count: 1,
+                    first_seen_at: Some(tcp.started_at.to_rfc3339()),
+                    last_seen_at: Some(tcp.completed_at.map(|t| t.to_rfc3339()).unwrap_or_else(|| now.clone())),
+                    related_target_id: Some(target_id.clone()),
+                    metadata_json: None,
                 };
                 Self::record_operation(conn, op)?;
             }
@@ -142,6 +202,8 @@ impl FailedRequestRegistry {
                 let id = Uuid::new_v4().to_string();
                 let summary = format!("TLS handshake failed for: {}", result.target_url);
                 let failure_code = tls.error.as_ref().map(|e| format!("{:?}", e.kind));
+                let failure_category = classify_failure_from_stage("tls", &tls.status);
+                let severity = classify_severity_from_failure(&failure_category);
 
                 let op = NetworkOperationRecord {
                     schema_version: 1,
@@ -163,6 +225,22 @@ impl FailedRequestRegistry {
                     summary,
                     request_metadata: None,
                     response_metadata: None,
+                    source_type: "canireach_probe".to_string(),
+                    visibility_level: "application_instrumented".to_string(),
+                    host: host.clone(),
+                    registrable_domain: registrable_domain.clone(),
+                    destination_ip: None,
+                    destination_port: None,
+                    protocol: None,
+                    http_status_code: None,
+                    failure_category,
+                    failure_reason: None,
+                    severity,
+                    occurrence_count: 1,
+                    first_seen_at: Some(tls.started_at.to_rfc3339()),
+                    last_seen_at: Some(tls.completed_at.map(|t| t.to_rfc3339()).unwrap_or_else(|| now.clone())),
+                    related_target_id: Some(target_id.clone()),
+                    metadata_json: None,
                 };
                 Self::record_operation(conn, op)?;
             }
@@ -174,6 +252,8 @@ impl FailedRequestRegistry {
                 let id = Uuid::new_v4().to_string();
                 let summary = format!("HTTP request execution failed: {}", result.target_url);
                 let failure_code = http.error.as_ref().map(|e| format!("{:?}", e.kind));
+                let failure_category = classify_failure_from_stage("http", &http.status);
+                let severity = classify_severity_from_failure(&failure_category);
 
                 let op = NetworkOperationRecord {
                     schema_version: 1,
@@ -195,6 +275,22 @@ impl FailedRequestRegistry {
                     summary,
                     request_metadata: None,
                     response_metadata: None,
+                    source_type: "canireach_probe".to_string(),
+                    visibility_level: "application_instrumented".to_string(),
+                    host: host.clone(),
+                    registrable_domain: registrable_domain.clone(),
+                    destination_ip: None,
+                    destination_port: None,
+                    protocol: None,
+                    http_status_code: None,
+                    failure_category,
+                    failure_reason: None,
+                    severity,
+                    occurrence_count: 1,
+                    first_seen_at: Some(http.started_at.to_rfc3339()),
+                    last_seen_at: Some(http.completed_at.map(|t| t.to_rfc3339()).unwrap_or_else(|| now.clone())),
+                    related_target_id: Some(target_id.clone()),
+                    metadata_json: None,
                 };
                 Self::record_operation(conn, op)?;
             }
@@ -202,4 +298,31 @@ impl FailedRequestRegistry {
 
         Ok(())
     }
+}
+
+fn extract_simple_domain(url: &str) -> String {
+    let stripped = url.trim_start_matches("http://").trim_start_matches("https://");
+    stripped.split('/').next().unwrap_or(stripped)
+        .split(':').next().unwrap_or(stripped)
+        .to_string()
+}
+
+fn classify_failure_from_stage(stage: &str, status: &str) -> String {
+    match stage {
+        "dns" => if status == "timeout" { "dns_timeout" } else { "dns_failure" },
+        "tcp" => if status == "timeout" { "connection_timeout" } else { "connection_refused" },
+        "tls" => "tls_handshake",
+        "http" => if status == "timeout" { "connection_timeout" } else { "http_error" },
+        _ => "unknown",
+    }.to_string()
+}
+
+fn classify_severity_from_failure(category: &str) -> String {
+    match category {
+        "dns_failure" | "dns_timeout" => "high",
+        "connection_refused" | "connection_timeout" => "high",
+        "tls_handshake" => "critical",
+        "http_error" => "medium",
+        _ => "medium",
+    }.to_string()
 }

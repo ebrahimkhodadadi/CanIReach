@@ -38,6 +38,8 @@ import { GlobalLogPanel } from "../components/logs/GlobalLogPanel";
 import { groupTargetsByCategory } from "../utils/grouping";
 import { AnimatePresence } from "framer-motion";
 import { CompactDashboard } from "../features/dashboard/components/CompactDashboard";
+import { useContinuousMonitorStore } from "../features/continuous-monitor/store/continuousMonitorStore";
+import { subscribeToContinuousMonitorStateChanged, subscribeToContinuousMonitorRunCompleted } from "../features/continuous-monitor/events/continuousMonitorEvents";
 
 export const App: React.FC = () => {
   const [windowLabel, setWindowLabel] = useState<string>("main");
@@ -217,6 +219,28 @@ export const App: React.FC = () => {
       }
     };
   }, [handleProbeCancelled]);
+
+  // Subscribe to continuous monitor events
+  useEffect(() => {
+    const store = useContinuousMonitorStore.getState();
+    store.fetchSessions();
+
+    let unlistenState: (() => void) | null = null;
+    let unlistenRun: (() => void) | null = null;
+
+    subscribeToContinuousMonitorStateChanged((payload) => {
+      useContinuousMonitorStore.getState().updateSessionFromEvent(payload);
+    }).then((fn) => { unlistenState = fn; });
+
+    subscribeToContinuousMonitorRunCompleted((payload) => {
+      useContinuousMonitorStore.getState().updateRunFromEvent(payload);
+    }).then((fn) => { unlistenRun = fn; });
+
+    return () => {
+      if (unlistenState) unlistenState();
+      if (unlistenRun) unlistenRun();
+    };
+  }, []);
 
   // Calculate problem count
   const problemsCount = targets.filter((t) => {

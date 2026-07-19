@@ -1,6 +1,8 @@
 import React, { useMemo } from "react";
 import { Target, ProbeResult } from "../../probes/types";
 import { LiveAnalyzerCard } from "./LiveAnalyzerCard";
+import { useContinuousMonitorStore } from "../../continuous-monitor/store/continuousMonitorStore";
+import { useFailedRequestsStore } from "../../failed-requests/store/failedRequestsStore";
 import { listen } from "@tauri-apps/api/event";
 import { mapProbeResultToTargetCheckResult } from "../../../features/monitoring/services/monitoringMapper";
 import { 
@@ -40,6 +42,10 @@ export const Overview: React.FC<OverviewProps> = ({
   onSelectTarget,
 }) => {
   const [networkChanged, setNetworkChanged] = React.useState(false);
+  const monitorSessions = useContinuousMonitorStore((s) => s.sessions);
+  const activeMonitorsCount = Object.values(monitorSessions).filter((s) => s.state === "running").length;
+  const failedRequestsStore = useFailedRequestsStore();
+  const failedRequestsCount = failedRequestsStore.requests.length;
 
   React.useEffect(() => {
     let unlisten: (() => void) | undefined;
@@ -308,6 +314,21 @@ export const Overview: React.FC<OverviewProps> = ({
           isMono
           icon={Clock}
         />
+        <MetricCard
+          label="Failed Requests"
+          value={failedRequestsCount}
+          desc="Logged failures"
+          color="text-[var(--color-danger)]"
+          icon={WarningCircle}
+          onClick={() => onSelectTab("operations")}
+        />
+        <MetricCard
+          label="Active Monitors"
+          value={activeMonitorsCount}
+          desc="Continuous tests"
+          color="text-[var(--color-success)]"
+          icon={Broadcast}
+        />
       </div>
 
       {/* Live Stability Analyzer Panel */}
@@ -445,7 +466,9 @@ export const Overview: React.FC<OverviewProps> = ({
             { label: "Connectivity Check", action: onProbeAll, desc: "Probe all endpoints", icon: ShieldCheck },
             { label: "Problems Center", action: () => onSelectTab("problems"), desc: "View incident timeline", icon: WarningCircle },
             { label: "Targets Table", action: () => onSelectTab("targets"), desc: "Manage Category list", icon: Globe },
-            { label: "Settings Dashboard", action: () => onSelectTab("settings"), desc: "Edit network profiles", icon: Gear }
+            { label: "Settings Dashboard", action: () => onSelectTab("settings"), desc: "Edit network profiles", icon: Gear },
+            { label: "Failed Requests", action: () => onSelectTab("operations"), desc: "View observed failures", icon: WarningCircle },
+            { label: "Continuous Monitors", action: () => onSelectTab("targets"), desc: "Manage active monitors", icon: Broadcast },
           ].map((act, idx) => {
             const Icon = act.icon;
             return (

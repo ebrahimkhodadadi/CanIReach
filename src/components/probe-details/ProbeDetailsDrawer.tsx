@@ -5,6 +5,9 @@ import { Target, ProbeResult } from "../../features/probes/types";
 import { getStatusDisplayInfo } from "../../utils/status";
 import { useTraces, useActiveRuns, useTracerouteActions } from "../../features/traceroute/store/selectors";
 import { TraceroutePathGraph } from "../../features/traceroute/components/TraceroutePathGraph";
+import { useContinuousMonitorStore } from "../../features/continuous-monitor/store/continuousMonitorStore";
+import { ContinuousTestDialog } from "../../features/continuous-monitor/components/ContinuousTestDialog";
+import { ContinuousMonitorHistory } from "../../features/continuous-monitor/components/ContinuousMonitorHistory";
 
 interface ProbeDetailsDrawerProps {
   target: Target;
@@ -59,6 +62,11 @@ export const ProbeDetailsDrawer: React.FC<ProbeDetailsDrawerProps> = ({
   const traceResult = traces[target.id];
   const activeRunId = activeRuns[target.id];
   const isTracing = !!activeRunId;
+
+  const { sessions: monitorSessions, startMonitor, stopMonitor, fetchHistory } = useContinuousMonitorStore();
+  const [showContinuousDialog, setShowContinuousDialog] = useState(false);
+  const [showMonitorHistory, setShowMonitorHistory] = useState(false);
+  const monitorSession = monitorSessions[target.id] || null;
 
   const loopIntervalMs = useMemo(() => {
     const value = Number(loopIntervalValue);
@@ -492,6 +500,40 @@ export const ProbeDetailsDrawer: React.FC<ProbeDetailsDrawerProps> = ({
                   <strong>Diagnostic Recommendation:</strong> Connection failed at the {result.failure_stage.toUpperCase()} layer. Review the timeline for DNS, TCP, or TLS specifics. Run traceroute below to isolate network route interruptions.
                 </div>
               )}
+
+              {/* Continuous Monitor Section */}
+              <div className="space-y-2">
+                <span className="text-[9px] uppercase font-bold text-[var(--color-text-muted)] font-mono">Continuous Monitor</span>
+                {monitorSession && monitorSession.state !== "stopped" ? (
+                  <div className="p-3 bg-[var(--color-bg-input)] border border-[var(--color-border-default)] rounded space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono text-[var(--color-success)] font-bold">● {monitorSession.state.toUpperCase()}</span>
+                      <span className="text-[9px] text-[var(--color-text-muted)] font-mono">{monitorSession.total_runs} runs · {monitorSession.config.interval_seconds}s interval</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { stopMonitor(target.id); }}
+                        className="px-2 py-1 bg-[var(--color-danger-soft)] hover:bg-[var(--color-danger)]/20 border border-[var(--color-danger)]/20 text-[var(--color-danger)] text-[10px] font-bold rounded cursor-pointer"
+                      >
+                        Stop Monitor
+                      </button>
+                      <button
+                        onClick={() => { fetchHistory(target.id); setShowMonitorHistory(true); }}
+                        className="px-2 py-1 bg-[var(--color-bg-input)] hover:bg-[var(--color-bg-panel-hover)] border border-[var(--color-border-default)] text-[var(--color-text-secondary)] text-[10px] font-bold rounded cursor-pointer"
+                      >
+                        View History
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowContinuousDialog(true)}
+                    className="w-full p-2 bg-[var(--color-bg-input)] hover:bg-[var(--color-bg-panel-hover)] border border-[var(--color-border-default)] border-dashed text-[var(--color-text-secondary)] hover:text-[var(--color-success)] text-[10px] font-bold rounded cursor-pointer transition-colors"
+                  >
+                    Start Continuous Test
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
@@ -670,6 +712,27 @@ export const ProbeDetailsDrawer: React.FC<ProbeDetailsDrawerProps> = ({
         </div>
 
       </motion.div>
+
+      {/* Continuous Test Dialog */}
+      {showContinuousDialog && (
+        <ContinuousTestDialog
+          targetName={target.name}
+          onStart={(config) => {
+            startMonitor(target.id, config);
+            setShowContinuousDialog(false);
+          }}
+          onClose={() => setShowContinuousDialog(false)}
+        />
+      )}
+
+      {/* Monitor History Drawer */}
+      {showMonitorHistory && (
+        <ContinuousMonitorHistory
+          targetId={target.id}
+          targetName={target.name}
+          onClose={() => setShowMonitorHistory(false)}
+        />
+      )}
     </>
   );
 };

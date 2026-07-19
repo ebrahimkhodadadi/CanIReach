@@ -9,7 +9,8 @@ import {
   Trash,
   Pencil,
   PlusCircle,
-  ArrowClockwise
+  ArrowClockwise,
+  Broadcast
 } from "@phosphor-icons/react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -54,7 +55,7 @@ export const Settings: React.FC = () => {
   };
 
   // Sub-tabs
-  const [subTab, setSubTab] = useState<"engine" | "profiles" | "groups" | "updates" | "reset">("engine");
+  const [subTab, setSubTab] = useState<"engine" | "profiles" | "groups" | "updates" | "reset" | "monitoring">("engine");
 
   // Updates state
   const [updateState, setUpdateState] = useState<{
@@ -370,6 +371,7 @@ export const Settings: React.FC = () => {
           { id: "profiles", label: "Network Profiles", icon: Globe },
           { id: "groups", label: "Endpoint Groups", icon: Users },
           { id: "updates", label: "Software Updates", icon: ArrowClockwise },
+          { id: "monitoring", label: "Monitoring", icon: Broadcast },
           { id: "reset", label: "Reset App", icon: Trash }
         ].map((tab) => {
           const Icon = tab.icon;
@@ -1211,6 +1213,55 @@ export const Settings: React.FC = () => {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {subTab === "monitoring" && (
+          <div className="space-y-4 max-w-2xl">
+            <section className="space-y-4">
+              <h3 className="text-[10px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider font-mono border-b border-[var(--color-border-subtle)] pb-2">
+                Continuous Monitor Defaults
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3.5 rounded border border-[var(--color-border-default)] bg-[var(--color-bg-panel)]/40 space-y-1.5">
+                  <label className="text-[10px] text-[var(--color-text-secondary)] font-bold uppercase font-mono">Default Interval (seconds)</label>
+                  <input
+                    type="number"
+                    min="5"
+                    value={30}
+                    readOnly
+                    className="bg-[var(--color-bg-input)] border border-[var(--color-border-default)] rounded px-2.5 py-1 text-xs text-[var(--color-text-primary)] font-mono w-full opacity-60"
+                  />
+                  <p className="text-[10px] text-[var(--color-text-muted)] font-mono">Minimum 5 seconds. Configure per-target in the test dialog.</p>
+                </div>
+                <div className="p-3.5 rounded border border-[var(--color-border-default)] bg-[var(--color-bg-panel)]/40 space-y-1.5">
+                  <label className="text-[10px] text-[var(--color-text-secondary)] font-bold uppercase font-mono">Minimum Allowed Interval</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={5}
+                    readOnly
+                    className="bg-[var(--color-bg-input)] border border-[var(--color-border-default)] rounded px-2.5 py-1 text-xs text-[var(--color-text-primary)] font-mono w-full opacity-60"
+                  />
+                  <p className="text-[10px] text-[var(--color-text-muted)] font-mono">Hard minimum enforced by the backend scheduler.</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="space-y-4">
+              <h3 className="text-[10px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider font-mono border-b border-[var(--color-border-subtle)] pb-2">
+                Observation Scope
+              </h3>
+              <div className="p-3.5 rounded border border-[var(--color-info)]/20 bg-[var(--color-info-soft)] text-xs text-[var(--color-text-secondary)] space-y-1.5">
+                <p className="font-bold text-[var(--color-info)] uppercase font-mono text-[10px]">Current Capabilities</p>
+                <ul className="list-disc list-inside space-y-1 leading-relaxed">
+                  <li>CanIReach records failures from its own diagnostic probes</li>
+                  <li>Each failure identifies its source and visibility level</li>
+                  <li>HTTPS paths and headers are not captured without explicit proxy mode</li>
+                  <li>System-wide passive monitoring is not available in this version</li>
+                </ul>
+              </div>
+            </section>
           </div>
         )}
       </div>

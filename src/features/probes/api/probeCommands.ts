@@ -213,3 +213,38 @@ export const recordWebrtcCandidate = async (sessionId: string, candidate: string
   return invoke<void>("record_webrtc_candidate", { sessionId, candidate });
 };
 
+// Failed Requests Enhanced API
+import { FailedRequestRecord, FailedRequestFilters } from "../../failed-requests/types";
+
+export const queryFailedRequests = async (
+  limit?: number,
+  offset?: number,
+  filters?: FailedRequestFilters
+): Promise<FailedRequestRecord[]> => {
+  return invoke<FailedRequestRecord[]>("query_failed_requests", {
+    limit: limit ?? 50,
+    offset: offset ?? 0,
+    sourceType: filters?.source_type,
+    host: filters?.host,
+    failureCategory: filters?.failure_category,
+    severity: filters?.severity,
+  });
+};
+
+export const getDomainSuggestions = async (host: string): Promise<string[]> => {
+  return invoke<string[]>("get_domain_suggestions", { host });
+};
+
+export const addDomainToTargets = async (
+  host: string,
+  name?: string,
+  category?: string
+): Promise<any[]> => {
+  return invoke<any[]>("add_domain_to_targets", { host, name, category });
+};
+
+// Clear failed requests
+export const clearNetworkOperations = async (): Promise<number> => {
+  return invoke<number>("clear_network_operations");
+};
+

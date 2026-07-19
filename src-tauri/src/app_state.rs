@@ -19,6 +19,7 @@ pub struct AppState {
     pub updater_status: Arc<Mutex<crate::commands::updater::UpdateSnapshot>>,
     pub analyzer_service: crate::monitoring::analyzer::AnalyzerService,
     pub analyzer_snapshot: Arc<Mutex<crate::monitoring::analyzer::AnalyzerSnapshot>>,
+    pub continuous_monitor_manager: TokioMutex<crate::monitoring::continuous::ContinuousMonitorManager>,
 }
 
 impl AppState {
@@ -64,6 +65,8 @@ impl AppState {
         let engine = ProbeEngine::new(config.clone())?;
         let active_traces = Arc::new(Mutex::new(HashMap::new()));
         let active_probes = Arc::new(Mutex::new(HashMap::new()));
+        let continuous_monitor_manager =
+            TokioMutex::new(crate::monitoring::continuous::ContinuousMonitorManager::new());
 
         Ok(Self {
             engine: TokioMutex::new(engine),
@@ -77,6 +80,7 @@ impl AppState {
             updater_status,
             analyzer_service,
             analyzer_snapshot,
+            continuous_monitor_manager,
         })
     }
 

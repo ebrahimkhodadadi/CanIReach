@@ -26,6 +26,9 @@ import {
 } from "@phosphor-icons/react";
 import { useActiveRuns } from "../../features/traceroute/store/selectors";
 import { useProbeActions } from "../../features/probes/store/selectors";
+import { useContinuousMonitorStore } from "../../features/continuous-monitor/store/continuousMonitorStore";
+import { ContinuousTestDialog } from "../../features/continuous-monitor/components/ContinuousTestDialog";
+import { ContinuousMonitorStatus } from "../../features/continuous-monitor/components/ContinuousMonitorStatus";
 import { TargetDialog } from "./TargetDialog";
 
 interface TargetGridProps {
@@ -78,6 +81,10 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
   // Drag and drop state
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+
+  // Continuous monitor dialog state
+  const [continuousDialogTarget, setContinuousDialogTarget] = useState<Target | null>(null);
+  const { sessions: monitorSessions, startMonitor, stopMonitor } = useContinuousMonitorStore();
 
   // Extract all targets into flat list
   const allTargets = useMemo(() => {
@@ -477,7 +484,8 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
                   </div>
                 </th>
                 <th className="py-3 px-4 w-32">Category</th>
-                <th 
+                <th className="py-3 px-4 w-28">Monitor</th>
+                <th
                   className="py-3 px-4 w-24 cursor-pointer hover:text-slate-300 transition-colors"
                   onClick={() => handleSort("latency")}
                 >
@@ -553,6 +561,14 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
                       <div className="text-[10px] text-slate-500 font-mono truncate max-w-xs mt-0.5" title={target.url}>
                         {target.url}
                       </div>
+                    </td>
+
+                    {/* Continuous Monitor Status */}
+                    <td className="py-3.5 px-4">
+                      <ContinuousMonitorStatus
+                        session={monitorSessions[target.id] || null}
+                        onStop={() => stopMonitor(target.id)}
+                      />
                     </td>
 
                     <td className="py-3.5 px-4 text-slate-400 font-medium">
@@ -705,6 +721,17 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
+                              setActiveMenuId(null);
+                              setContinuousDialogTarget(target);
+                            }}
+                            className="w-full px-3 py-1.5 text-emerald-400 hover:bg-emerald-900 hover:text-white flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <ArrowsClockwise size={12} />
+                            Continuous Test
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setConfirmDeleteId(target.id);
                               setActiveMenuId(null);
                             }}
@@ -789,6 +816,18 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Continuous Test Dialog */}
+      {continuousDialogTarget && (
+        <ContinuousTestDialog
+          targetName={continuousDialogTarget.name}
+          onStart={(config) => {
+            startMonitor(continuousDialogTarget.id, config);
+            setContinuousDialogTarget(null);
+          }}
+          onClose={() => setContinuousDialogTarget(null)}
+        />
       )}
 
     </div>
