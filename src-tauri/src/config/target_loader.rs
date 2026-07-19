@@ -107,6 +107,8 @@ impl TargetLoader {
                         enabled: true,
                         network_profile_id: None,
                         diagnostic_overrides: None,
+                        pinned: false,
+                        sort_order: 0,
                         created_at: chrono::Utc::now().to_rfc3339(),
                         updated_at: chrono::Utc::now().to_rfc3339(),
                     });
@@ -472,6 +474,8 @@ impl TargetLoader {
                 enabled: true,
                 network_profile_id: None,
                 diagnostic_overrides: None,
+                pinned: false,
+                sort_order: 0,
                 created_at: chrono::Utc::now().to_rfc3339(),
                 updated_at: chrono::Utc::now().to_rfc3339(),
             })

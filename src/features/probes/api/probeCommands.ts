@@ -26,6 +26,14 @@ export const setTargetEnabled = async (id: string, enabled: boolean): Promise<Ta
   return invoke<Target[]>("set_target_enabled", { id, enabled });
 };
 
+export const toggleTargetPin = async (id: string): Promise<Target[]> => {
+  return invoke<Target[]>("toggle_target_pin", { id });
+};
+
+export const reorderTargets = async (orderedIds: string[]): Promise<Target[]> => {
+  return invoke<Target[]>("reorder_targets", { orderedIds });
+};
+
 // Target Groups CRUD
 export const getTargetGroups = async (): Promise<TargetGroup[]> => {
   return invoke<TargetGroup[]>("get_target_groups");

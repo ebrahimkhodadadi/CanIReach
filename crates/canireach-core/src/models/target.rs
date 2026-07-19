@@ -35,6 +35,10 @@ pub struct Target {
     pub network_profile_id: Option<String>,
     #[serde(default)]
     pub diagnostic_overrides: Option<DiagnosticOverrides>,
+    #[serde(default)]
+    pub pinned: bool,
+    #[serde(default)]
+    pub sort_order: i32,
     #[serde(default = "default_time")]
     pub created_at: String,
     #[serde(default = "default_time")]

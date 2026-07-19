@@ -34,6 +34,8 @@ export const useProbeActions = () => {
   const deleteTarget = useProbeStore((s) => s.deleteTarget);
   const duplicateTarget = useProbeStore((s) => s.duplicateTarget);
   const toggleTargetEnabled = useProbeStore((s) => s.toggleTargetEnabled);
+  const toggleTargetPin = useProbeStore((s) => s.toggleTargetPin);
+  const reorderTargets = useProbeStore((s) => s.reorderTargets);
 
   const fetchGroups = useProbeStore((s) => s.fetchGroups);
   const addGroup = useProbeStore((s) => s.addGroup);
@@ -65,6 +67,8 @@ export const useProbeActions = () => {
     deleteTarget,
     duplicateTarget,
     toggleTargetEnabled,
+    toggleTargetPin,
+    reorderTargets,
     fetchGroups,
     addGroup,
     editGroup,

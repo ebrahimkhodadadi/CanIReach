@@ -7,6 +7,8 @@ import {
   deleteTarget,
   duplicateTarget,
   setTargetEnabled,
+  toggleTargetPin,
+  reorderTargets,
   getTargetGroups,
   createTargetGroup,
   updateTargetGroup,
@@ -61,6 +63,8 @@ interface ProbeState {
   deleteTarget: (id: string) => Promise<void>;
   duplicateTarget: (id: string) => Promise<void>;
   toggleTargetEnabled: (id: string, enabled: boolean) => Promise<void>;
+  toggleTargetPin: (id: string) => Promise<void>;
+  reorderTargets: (orderedIds: string[]) => Promise<void>;
 
   fetchGroups: () => Promise<void>;
   addGroup: (group: TargetGroup) => Promise<void>;
@@ -354,6 +358,26 @@ export const useProbeStore = create<ProbeState>((set, get) => ({
       set({ targets });
     } catch (err) {
       console.error("Failed to toggle target enabled status:", err);
+      throw err;
+    }
+  },
+
+  toggleTargetPin: async (id) => {
+    try {
+      const targets = await toggleTargetPin(id);
+      set({ targets });
+    } catch (err) {
+      console.error("Failed to toggle target pin:", err);
+      throw err;
+    }
+  },
+
+  reorderTargets: async (orderedIds) => {
+    try {
+      const targets = await reorderTargets(orderedIds);
+      set({ targets });
+    } catch (err) {
+      console.error("Failed to reorder targets:", err);
       throw err;
     }
   },

@@ -598,6 +598,8 @@ async fn run_test(
                     enabled: true,
                     network_profile_id: profile_id_opt.clone(),
                     diagnostic_overrides: None,
+                    pinned: false,
+                    sort_order: 0,
                     created_at: chrono::Utc::now().to_rfc3339(),
                     updated_at: chrono::Utc::now().to_rfc3339(),
                 };

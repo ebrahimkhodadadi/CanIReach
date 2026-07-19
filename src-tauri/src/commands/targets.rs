@@ -103,6 +103,56 @@ pub fn duplicate_target(state: State<'_, AppState>, id: String) -> Result<Vec<Ta
 }
 
 #[tauri::command]
+pub fn toggle_target_pin(state: State<'_, AppState>, id: String) -> Result<Vec<Target>, AppError> {
+    let mut targets = state.targets.lock().unwrap();
+
+    let index = targets
+        .iter()
+        .position(|t| t.id == id)
+        .ok_or_else(|| AppError::Generic("Target not found".to_string()))?;
+
+    targets[index].pinned = !targets[index].pinned;
+    targets[index].updated_at = chrono::Utc::now().to_rfc3339();
+    TargetLoader::save(&targets)?;
+
+    Ok(targets.clone())
+}
+
+#[tauri::command]
+pub fn reorder_targets(
+    state: State<'_, AppState>,
+    ordered_ids: Vec<String>,
+) -> Result<Vec<Target>, AppError> {
+    let mut targets = state.targets.lock().unwrap();
+
+    // Build a map for quick lookup
+    let mut target_map: std::collections::HashMap<String, Target> = std::collections::HashMap::new();
+    for t in targets.drain(..) {
+        target_map.insert(t.id.clone(), t);
+    }
+
+    // Rebuild in the requested order, assigning sort_order
+    let mut reordered: Vec<Target> = Vec::new();
+    for (i, id) in ordered_ids.iter().enumerate() {
+        if let Some(mut t) = target_map.remove(id) {
+            t.sort_order = i as i32;
+            t.updated_at = chrono::Utc::now().to_rfc3339();
+            reordered.push(t);
+        }
+    }
+
+    // Add any remaining targets that weren't in ordered_ids (shouldn't happen, but safety)
+    for mut t in target_map.into_values() {
+        t.sort_order = reordered.len() as i32;
+        t.updated_at = chrono::Utc::now().to_rfc3339();
+        reordered.push(t);
+    }
+
+    TargetLoader::save(&reordered)?;
+    Ok(reordered)
+}
+
+#[tauri::command]
 pub fn set_target_enabled(
     state: State<'_, AppState>,
     id: String,

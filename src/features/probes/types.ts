@@ -18,6 +18,8 @@ export interface Target {
   enabled: boolean;
   network_profile_id?: string;
   diagnostic_overrides?: DiagnosticOverrides;
+  pinned: boolean;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 }

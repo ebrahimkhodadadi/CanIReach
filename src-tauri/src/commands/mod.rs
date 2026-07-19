@@ -47,7 +47,8 @@ pub use schedules::{
 };
 pub use settings::{get_settings, reset_application, save_settings};
 pub use targets::{
-    create_target, delete_target, duplicate_target, get_targets, set_target_enabled, update_target,
+    create_target, delete_target, duplicate_target, get_targets, reorder_targets,
+    set_target_enabled, toggle_target_pin, update_target,
 };
 pub use traceroute::{cancel_traceroute, start_traceroute};
 

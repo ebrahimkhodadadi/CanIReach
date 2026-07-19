@@ -19,7 +19,10 @@ import {
   DotsThreeVertical,
   CheckSquare,
   Square,
-  ArrowsClockwise
+  ArrowsClockwise,
+  PushPin,
+  PushPinSlash,
+  DotsSixVertical
 } from "@phosphor-icons/react";
 import { useActiveRuns } from "../../features/traceroute/store/selectors";
 import { useProbeActions } from "../../features/probes/store/selectors";
@@ -52,7 +55,7 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
   onTraceTarget,
 }) => {
   const activeRuns = useActiveRuns();
-  const { deleteTarget, duplicateTarget, toggleTargetEnabled, probeOne } = useProbeActions();
+  const { deleteTarget, duplicateTarget, toggleTargetEnabled, toggleTargetPin, reorderTargets, probeOne } = useProbeActions();
 
   const [localSearch, setLocalSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -71,6 +74,10 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
   // Delete confirmation
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+
+  // Drag and drop state
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   // Extract all targets into flat list
   const allTargets = useMemo(() => {
@@ -126,8 +133,15 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
       });
     }
 
-    // Sort targets
-    result.sort((a, b) => {
+    // Separate pinned and unpinned
+    const pinned = result.filter((item) => item.target.pinned);
+    const unpinned = result.filter((item) => !item.target.pinned);
+
+    // Sort pinned by sort_order
+    pinned.sort((a, b) => (a.target.sort_order ?? 0) - (b.target.sort_order ?? 0));
+
+    // Sort unpinned by existing logic
+    unpinned.sort((a, b) => {
       const testedA = !!a.rawResult;
       const testedB = !!b.rawResult;
 
@@ -158,7 +172,7 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
       return 0;
     });
 
-    return result;
+    return [...pinned, ...unpinned];
   }, [normalizedTargets, localSearch, statusFilter, catFilter, sortField, sortOrder]);
 
   const handleSort = (field: SortField) => {
@@ -176,6 +190,8 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
     setCatFilter("ALL");
     setSortField("name");
     setSortOrder("asc");
+    setDraggedId(null);
+    setDragOverId(null);
   };
 
   const toggleSelectAll = () => {
@@ -247,6 +263,74 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
     } catch (err) {
       console.error("Failed to toggle enabled status:", err);
     }
+  };
+
+  const handleTogglePin = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await toggleTargetPin(id);
+    } catch (err) {
+      console.error("Failed to toggle pin:", err);
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", id);
+    setDraggedId(id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (id !== draggedId) {
+      setDragOverId(id);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverId(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    const sourceId = e.dataTransfer.getData("text/plain");
+
+    if (!sourceId || sourceId === targetId) {
+      setDraggedId(null);
+      setDragOverId(null);
+      return;
+    }
+
+    // Build new order: take current processedTargets order, move source to target position
+    const currentIds = processedTargets.map((item) => item.target.id);
+    const sourceIndex = currentIds.indexOf(sourceId);
+    const targetIndex = currentIds.indexOf(targetId);
+
+    if (sourceIndex === -1 || targetIndex === -1) {
+      setDraggedId(null);
+      setDragOverId(null);
+      return;
+    }
+
+    const newIds = [...currentIds];
+    newIds.splice(sourceIndex, 1);
+    newIds.splice(targetIndex, 0, sourceId);
+
+    setDraggedId(null);
+    setDragOverId(null);
+
+    try {
+      await reorderTargets(newIds);
+    } catch (err) {
+      console.error("Failed to reorder targets:", err);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedId(null);
+    setDragOverId(null);
   };
 
   const getStatusBadgeStyle = (status: string, enabled: boolean) => {
@@ -368,6 +452,7 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
           <table className="w-full text-left border-collapse select-text">
             <thead>
               <tr className="border-b border-[#1e293b] bg-[#0c1017] sticky top-0 z-10 text-[10px] text-slate-500 uppercase tracking-wider font-bold select-none">
+                <th className="py-3 px-2 w-6"></th>
                 <th className="py-3 px-4 w-10">
                   <button onClick={toggleSelectAll} className="text-slate-400 hover:text-white cursor-pointer">
                     {selectedIds.length === processedTargets.length ? <CheckSquare size={16} /> : <Square size={16} />}
@@ -429,10 +514,26 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
                   <tr
                     key={target.id}
                     onClick={() => onSelectTarget(target.id)}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, target.id)}
+                    onDragOver={(e) => handleDragOver(e, target.id)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, target.id)}
+                    onDragEnd={handleDragEnd}
                     className={`border-b border-[#1e293b]/70 hover:bg-[#131a24]/80 cursor-pointer transition-colors text-xs select-none group ${
                       !target.enabled ? "opacity-60" : ""
-                    } ${isSelected ? "bg-indigo-950/10" : ""}`}
+                    } ${isSelected ? "bg-indigo-950/10" : ""} ${
+                      draggedId === target.id ? "opacity-40" : ""
+                    } ${dragOverId === target.id ? "border-t-2 border-t-indigo-500" : ""}`}
                   >
+                    <td className="py-3.5 px-2 w-6">
+                      <button
+                        className="text-slate-600 hover:text-slate-400 cursor-grab active:cursor-grabbing"
+                        title="Drag to reorder"
+                      >
+                        <DotsSixVertical size={12} />
+                      </button>
+                    </td>
                     <td className="py-3.5 px-4" onClick={(e) => toggleSelectOne(target.id, e)}>
                       <button className="text-slate-500 hover:text-indigo-400 cursor-pointer">
                         {isSelected ? <CheckSquare size={14} className="text-indigo-500" /> : <Square size={14} />}
@@ -497,6 +598,19 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
                     </td>
 
                     <td className="py-3.5 px-4 text-right flex items-center justify-end gap-1.5 relative">
+                      {/* Pin/Unpin button */}
+                      <button
+                        onClick={(e) => handleTogglePin(target.id, e)}
+                        className={`p-1 rounded cursor-pointer transition-colors ${
+                          target.pinned
+                            ? "text-amber-400 hover:text-amber-300"
+                            : "text-slate-600 hover:text-slate-400"
+                        }`}
+                        title={target.pinned ? "Unpin target" : "Pin to top"}
+                      >
+                        {target.pinned ? <PushPin size={12} weight="fill" /> : <PushPinSlash size={12} />}
+                      </button>
+
                       {/* Enable/Disable Toggle button */}
                       <button
                         onClick={(e) => handleToggleEnabled(target.id, target.enabled, e)}

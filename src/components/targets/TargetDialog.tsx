@@ -101,6 +101,8 @@ export const TargetDialog: React.FC<TargetDialogProps> = ({ isOpen, target, onCl
       group_ids: selectedGroups,
       tags: [],
       enabled,
+      pinned: target?.pinned ?? false,
+      sort_order: target?.sort_order ?? 0,
       diagnostic_overrides: showAdvanced ? {
         request_method: requestMethod,
         follow_redirects: followRedirects,
