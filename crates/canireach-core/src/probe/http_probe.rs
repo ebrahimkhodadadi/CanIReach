@@ -385,6 +385,7 @@ async fn run_ip_family_diagnostics(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn cancelled_probe_result(
     target: &Target,
     url_str: String,
