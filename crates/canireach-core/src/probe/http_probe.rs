@@ -826,7 +826,7 @@ impl HttpProber {
                 "Probe cancelled before validation started.".to_string(),
             );
             return cancelled_probe_result(
-                &target,
+                target,
                 url_str.clone(),
                 run_id.clone(),
                 started_at,
@@ -946,7 +946,7 @@ impl HttpProber {
                 "Probe cancelled before DNS stage.".to_string(),
             );
             return cancelled_probe_result(
-                &target,
+                target,
                 url_str.clone(),
                 run_id.clone(),
                 started_at,
@@ -966,7 +966,7 @@ impl HttpProber {
                 "Probe cancelled after DNS stage.".to_string(),
             );
             return cancelled_probe_result(
-                &target,
+                target,
                 url_str.clone(),
                 run_id.clone(),
                 started_at,
@@ -1021,7 +1021,7 @@ impl HttpProber {
                 "Probe cancelled after IP checks.".to_string(),
             );
             return cancelled_probe_result(
-                &target,
+                target,
                 url_str.clone(),
                 run_id.clone(),
                 started_at,
@@ -1054,7 +1054,7 @@ impl HttpProber {
                 "Probe cancelled after TCP stage.".to_string(),
             );
             return cancelled_probe_result(
-                &target,
+                target,
                 url_str.clone(),
                 run_id.clone(),
                 started_at,
@@ -1100,7 +1100,7 @@ impl HttpProber {
                 "Probe cancelled after TLS stage.".to_string(),
             );
             return cancelled_probe_result(
-                &target,
+                target,
                 url_str.clone(),
                 run_id.clone(),
                 started_at,
@@ -1133,7 +1133,7 @@ impl HttpProber {
                         "Probe cancelled during HTTP request stage.".to_string(),
                     );
                     return cancelled_probe_result(
-                        &target,
+                        target,
                         url_str.clone(),
                         run_id.clone(),
                         started_at,

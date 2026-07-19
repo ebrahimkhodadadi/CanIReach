@@ -717,26 +717,21 @@ async fn run_test(
                     .await;
 
                 if cli.quiet {
-                    if cli.format == "json" {
+                    if cli.format == "json" || cli.format == "ndjson" {
                         let mapped = map_to_cli_json(&res);
                         if let Ok(serialized) = serde_json::to_string(&mapped) {
                             println!("{}", serialized);
-                        }
-                    } else if cli.format == "ndjson" {
-                        let mapped = map_to_cli_json(&res);
-                        if let Ok(line) = serde_json::to_string(&mapped) {
-                            println!("{}", line);
                         }
                     } else {
                         println!("{}", res.overall_status);
                     }
                 } else if is_human {
                     let status_styled = if res.overall_status == "up" {
-                        console::style(if cli.no_unicode { "✔" } else { "✔" }).green()
+                        console::style(if cli.no_unicode { "OK" } else { "✔" }).green()
                     } else if res.overall_status == "degraded" {
-                        console::style(if cli.no_unicode { "⚠" } else { "⚠" }).yellow()
+                        console::style(if cli.no_unicode { "WARN" } else { "⚠" }).yellow()
                     } else {
-                        console::style(if cli.no_unicode { "✘" } else { "✘" }).red()
+                        console::style(if cli.no_unicode { "FAIL" } else { "✘" }).red()
                     };
 
                     let rtt_styled = if res.latency_ms < 200 {
