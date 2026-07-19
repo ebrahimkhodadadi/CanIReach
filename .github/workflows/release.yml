@@ -317,6 +317,8 @@ jobs:
   publish:
     needs: [create-release, build-desktop, build-cli]
     runs-on: ubuntu-latest
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -362,10 +364,8 @@ jobs:
         run: node scripts/build-npm.cjs --binaries-dir raw-binaries
 
       - name: Publish NPM Packages
-        if: secrets.NPM_TOKEN != ''
+        if: env.NPM_TOKEN != ''
         run: node scripts/publish-npm.cjs
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Compile SHA-256 Checksums
         shell: bash
