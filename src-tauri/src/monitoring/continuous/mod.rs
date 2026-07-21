@@ -124,8 +124,8 @@ impl ContinuousMonitorManager {
         };
 
         // Persist session to DB
-        let conn =
-            DbManager::get_connection().map_err(|e| AppError::Generic(format!("DB error: {}", e)))?;
+        let conn = DbManager::get_connection()
+            .map_err(|e| AppError::Generic(format!("DB error: {}", e)))?;
         let config_json = serde_json::to_string(&config).unwrap_or_default();
         conn.execute(
             "INSERT INTO continuous_monitor_sessions (id, target_id, config_json, state, started_at, total_runs, successful_runs, failed_runs, consecutive_failures, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, 0, 0, 0, 0, ?6, ?7)",
@@ -308,10 +308,7 @@ impl ContinuousMonitorManager {
         let latency = result.latency_ms;
         let http_status_val = result.http_status.map(|s| s as i64);
         let error_category = result.failure.as_ref().map(|f| format!("{:?}", f.kind));
-        let error_message = result
-            .failure
-            .as_ref()
-            .map(|f| f.user_message.clone());
+        let error_message = result.failure.as_ref().map(|f| f.user_message.clone());
 
         // Save run to DB
         if let Ok(conn) = DbManager::get_connection() {

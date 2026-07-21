@@ -19,7 +19,8 @@ pub struct AppState {
     pub updater_status: Arc<Mutex<crate::commands::updater::UpdateSnapshot>>,
     pub analyzer_service: crate::monitoring::analyzer::AnalyzerService,
     pub analyzer_snapshot: Arc<Mutex<crate::monitoring::analyzer::AnalyzerSnapshot>>,
-    pub continuous_monitor_manager: TokioMutex<crate::monitoring::continuous::ContinuousMonitorManager>,
+    pub continuous_monitor_manager:
+        TokioMutex<crate::monitoring::continuous::ContinuousMonitorManager>,
 }
 
 impl AppState {

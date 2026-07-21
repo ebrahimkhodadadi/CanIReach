@@ -126,7 +126,8 @@ pub fn reorder_targets(
     let mut targets = state.targets.lock().unwrap();
 
     // Build a map for quick lookup
-    let mut target_map: std::collections::HashMap<String, Target> = std::collections::HashMap::new();
+    let mut target_map: std::collections::HashMap<String, Target> =
+        std::collections::HashMap::new();
     for t in targets.drain(..) {
         target_map.insert(t.id.clone(), t);
     }

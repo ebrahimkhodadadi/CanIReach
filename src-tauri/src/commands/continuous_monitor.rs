@@ -59,8 +59,8 @@ pub fn get_continuous_monitor_history(
     limit: Option<u32>,
     offset: Option<u32>,
 ) -> Result<Vec<serde_json::Value>, AppError> {
-    let conn = DbManager::get_connection()
-        .map_err(|e| AppError::Generic(format!("DB error: {}", e)))?;
+    let conn =
+        DbManager::get_connection().map_err(|e| AppError::Generic(format!("DB error: {}", e)))?;
     let limit_val = limit.unwrap_or(50);
     let offset_val = offset.unwrap_or(0);
 

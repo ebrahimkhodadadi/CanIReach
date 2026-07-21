@@ -78,17 +78,25 @@ pub fn query_network_operations(
                 summary: row.get(11)?,
                 request_metadata: row.get(12)?,
                 response_metadata: row.get(13)?,
-                source_type: row.get::<_, Option<String>>(14)?.unwrap_or_else(|| "canireach_probe".to_string()),
-                visibility_level: row.get::<_, Option<String>>(15)?.unwrap_or_else(|| "application_instrumented".to_string()),
+                source_type: row
+                    .get::<_, Option<String>>(14)?
+                    .unwrap_or_else(|| "canireach_probe".to_string()),
+                visibility_level: row
+                    .get::<_, Option<String>>(15)?
+                    .unwrap_or_else(|| "application_instrumented".to_string()),
                 host: row.get(16)?,
                 registrable_domain: row.get(17)?,
                 destination_ip: row.get(18)?,
                 destination_port: row.get::<_, Option<i64>>(19)?.map(|p| p as u16),
                 protocol: row.get(20)?,
                 http_status_code: row.get::<_, Option<i64>>(21)?.map(|c| c as u16),
-                failure_category: row.get::<_, Option<String>>(22)?.unwrap_or_else(|| "unknown".to_string()),
+                failure_category: row
+                    .get::<_, Option<String>>(22)?
+                    .unwrap_or_else(|| "unknown".to_string()),
                 failure_reason: row.get(23)?,
-                severity: row.get::<_, Option<String>>(24)?.unwrap_or_else(|| "medium".to_string()),
+                severity: row
+                    .get::<_, Option<String>>(24)?
+                    .unwrap_or_else(|| "medium".to_string()),
                 occurrence_count: row.get::<_, Option<i32>>(25)?.unwrap_or(1) as u32,
                 first_seen_at: row.get(26)?,
                 last_seen_at: row.get(27)?,
@@ -138,17 +146,25 @@ pub fn get_network_operation(id: String) -> Result<NetworkOperationRecord, AppEr
                 summary: row.get(11)?,
                 request_metadata: row.get(12)?,
                 response_metadata: row.get(13)?,
-                source_type: row.get::<_, Option<String>>(14)?.unwrap_or_else(|| "canireach_probe".to_string()),
-                visibility_level: row.get::<_, Option<String>>(15)?.unwrap_or_else(|| "application_instrumented".to_string()),
+                source_type: row
+                    .get::<_, Option<String>>(14)?
+                    .unwrap_or_else(|| "canireach_probe".to_string()),
+                visibility_level: row
+                    .get::<_, Option<String>>(15)?
+                    .unwrap_or_else(|| "application_instrumented".to_string()),
                 host: row.get(16)?,
                 registrable_domain: row.get(17)?,
                 destination_ip: row.get(18)?,
                 destination_port: row.get::<_, Option<i64>>(19)?.map(|p| p as u16),
                 protocol: row.get(20)?,
                 http_status_code: row.get::<_, Option<i64>>(21)?.map(|c| c as u16),
-                failure_category: row.get::<_, Option<String>>(22)?.unwrap_or_else(|| "unknown".to_string()),
+                failure_category: row
+                    .get::<_, Option<String>>(22)?
+                    .unwrap_or_else(|| "unknown".to_string()),
                 failure_reason: row.get(23)?,
-                severity: row.get::<_, Option<String>>(24)?.unwrap_or_else(|| "medium".to_string()),
+                severity: row
+                    .get::<_, Option<String>>(24)?
+                    .unwrap_or_else(|| "medium".to_string()),
                 occurrence_count: row.get::<_, Option<i32>>(25)?.unwrap_or(1) as u32,
                 first_seen_at: row.get(26)?,
                 last_seen_at: row.get(27)?,
@@ -250,9 +266,11 @@ pub fn query_failed_requests(
                 summary: row.get(11)?,
                 request_metadata: row.get(12)?,
                 response_metadata: row.get(13)?,
-                source_type: row.get::<_, Option<String>>(14)?
+                source_type: row
+                    .get::<_, Option<String>>(14)?
                     .unwrap_or_else(|| "canireach_probe".to_string()),
-                visibility_level: row.get::<_, Option<String>>(15)?
+                visibility_level: row
+                    .get::<_, Option<String>>(15)?
                     .unwrap_or_else(|| "application_instrumented".to_string()),
                 host: row.get(16)?,
                 registrable_domain: row.get(17)?,
@@ -260,10 +278,12 @@ pub fn query_failed_requests(
                 destination_port: row.get::<_, Option<i64>>(19)?.map(|p| p as u16),
                 protocol: row.get(20)?,
                 http_status_code: row.get::<_, Option<i64>>(21)?.map(|c| c as u16),
-                failure_category: row.get::<_, Option<String>>(22)?
+                failure_category: row
+                    .get::<_, Option<String>>(22)?
                     .unwrap_or_else(|| "unknown".to_string()),
                 failure_reason: row.get(23)?,
-                severity: row.get::<_, Option<String>>(24)?
+                severity: row
+                    .get::<_, Option<String>>(24)?
                     .unwrap_or_else(|| "medium".to_string()),
                 occurrence_count: row.get::<_, Option<i32>>(25)?.unwrap_or(1) as u32,
                 first_seen_at: row.get(26)?,

@@ -91,7 +91,11 @@ pub async fn probe_by_category(
         }
     }
 
-    emit_probe_started(Some(&app_clone), &format!("category:{}", category), &format!("Testing category: {}", category));
+    emit_probe_started(
+        Some(&app_clone),
+        &format!("category:{}", category),
+        &format!("Testing category: {}", category),
+    );
 
     let engine = state.engine.lock().await;
     let results = engine

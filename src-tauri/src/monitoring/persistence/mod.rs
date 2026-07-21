@@ -309,27 +309,75 @@ impl DbManager {
         )?;
 
         // Phase 1: Enriched network_operations columns
-        let _ = conn.execute("ALTER TABLE network_operations ADD COLUMN source_type TEXT DEFAULT 'canireach_probe';", []);
+        let _ = conn.execute(
+            "ALTER TABLE network_operations ADD COLUMN source_type TEXT DEFAULT 'canireach_probe';",
+            [],
+        );
         let _ = conn.execute("ALTER TABLE network_operations ADD COLUMN visibility_level TEXT DEFAULT 'application_instrumented';", []);
         let _ = conn.execute("ALTER TABLE network_operations ADD COLUMN host TEXT;", []);
-        let _ = conn.execute("ALTER TABLE network_operations ADD COLUMN registrable_domain TEXT;", []);
-        let _ = conn.execute("ALTER TABLE network_operations ADD COLUMN destination_ip TEXT;", []);
-        let _ = conn.execute("ALTER TABLE network_operations ADD COLUMN destination_port INTEGER;", []);
-        let _ = conn.execute("ALTER TABLE network_operations ADD COLUMN protocol TEXT;", []);
-        let _ = conn.execute("ALTER TABLE network_operations ADD COLUMN http_status_code INTEGER;", []);
-        let _ = conn.execute("ALTER TABLE network_operations ADD COLUMN failure_category TEXT DEFAULT 'unknown';", []);
-        let _ = conn.execute("ALTER TABLE network_operations ADD COLUMN failure_reason TEXT;", []);
-        let _ = conn.execute("ALTER TABLE network_operations ADD COLUMN severity TEXT DEFAULT 'medium';", []);
-        let _ = conn.execute("ALTER TABLE network_operations ADD COLUMN occurrence_count INTEGER DEFAULT 1;", []);
-        let _ = conn.execute("ALTER TABLE network_operations ADD COLUMN first_seen_at TEXT;", []);
-        let _ = conn.execute("ALTER TABLE network_operations ADD COLUMN last_seen_at TEXT;", []);
-        let _ = conn.execute("ALTER TABLE network_operations ADD COLUMN related_target_id TEXT;", []);
-        let _ = conn.execute("ALTER TABLE network_operations ADD COLUMN metadata_json TEXT;", []);
+        let _ = conn.execute(
+            "ALTER TABLE network_operations ADD COLUMN registrable_domain TEXT;",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE network_operations ADD COLUMN destination_ip TEXT;",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE network_operations ADD COLUMN destination_port INTEGER;",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE network_operations ADD COLUMN protocol TEXT;",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE network_operations ADD COLUMN http_status_code INTEGER;",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE network_operations ADD COLUMN failure_category TEXT DEFAULT 'unknown';",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE network_operations ADD COLUMN failure_reason TEXT;",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE network_operations ADD COLUMN severity TEXT DEFAULT 'medium';",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE network_operations ADD COLUMN occurrence_count INTEGER DEFAULT 1;",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE network_operations ADD COLUMN first_seen_at TEXT;",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE network_operations ADD COLUMN last_seen_at TEXT;",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE network_operations ADD COLUMN related_target_id TEXT;",
+            [],
+        );
+        let _ = conn.execute(
+            "ALTER TABLE network_operations ADD COLUMN metadata_json TEXT;",
+            [],
+        );
 
         // Indexes for new fields
-        let _ = conn.execute("CREATE INDEX IF NOT EXISTS idx_network_ops_host ON network_operations(host);", []);
+        let _ = conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_network_ops_host ON network_operations(host);",
+            [],
+        );
         let _ = conn.execute("CREATE INDEX IF NOT EXISTS idx_network_ops_failure_category ON network_operations(failure_category);", []);
-        let _ = conn.execute("CREATE INDEX IF NOT EXISTS idx_network_ops_severity ON network_operations(severity);", []);
+        let _ = conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_network_ops_severity ON network_operations(severity);",
+            [],
+        );
         let _ = conn.execute("CREATE INDEX IF NOT EXISTS idx_network_ops_source_type ON network_operations(source_type);", []);
 
         // Phase 2: Continuous monitor tables
@@ -372,7 +420,10 @@ impl DbManager {
         )?;
 
         let _ = conn.execute("CREATE INDEX IF NOT EXISTS idx_cm_runs_session ON continuous_monitor_runs(session_id);", []);
-        let _ = conn.execute("CREATE INDEX IF NOT EXISTS idx_cm_runs_target ON continuous_monitor_runs(target_id);", []);
+        let _ = conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_cm_runs_target ON continuous_monitor_runs(target_id);",
+            [],
+        );
 
         Ok(())
     }

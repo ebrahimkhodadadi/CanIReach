@@ -3,20 +3,19 @@
 
 /// Common registrable domain suffixes (2-part TLDs)
 const TWO_PART_TLDS: &[&str] = &[
-    "co.uk", "co.jp", "co.kr", "co.nz", "co.za", "co.in",
-    "com.au", "com.br", "com.cn", "com.co", "com.mx", "com.sg", "com.tw",
-    "org.uk", "net.au",
-    "gov.uk", "gov.au", "gov.in",
-    "ac.uk", "ac.jp",
-    "or.jp", "ne.jp",
-    "com.ar", "com.tr", "com.sa",
+    "co.uk", "co.jp", "co.kr", "co.nz", "co.za", "co.in", "com.au", "com.br", "com.cn", "com.co",
+    "com.mx", "com.sg", "com.tw", "org.uk", "net.au", "gov.uk", "gov.au", "gov.in", "ac.uk",
+    "ac.jp", "or.jp", "ne.jp", "com.ar", "com.tr", "com.sa",
 ];
 
 /// Extract hostname from a URL or plain hostname string.
 pub fn extract_host(input: &str) -> String {
     let s = input.trim();
     // Strip scheme
-    let s = s.strip_prefix("https://").or_else(|| s.strip_prefix("http://")).unwrap_or(s);
+    let s = s
+        .strip_prefix("https://")
+        .or_else(|| s.strip_prefix("http://"))
+        .unwrap_or(s);
     // Strip path
     let s = s.split('/').next().unwrap_or(s);
     // Strip port
@@ -134,7 +133,9 @@ pub fn classify_severity(failure_category: &str, http_status: Option<u16>) -> St
 
     match failure_category {
         "dns_failure" | "dns_timeout" | "dns_not_found" => "high".to_string(),
-        "connection_refused" | "connection_timeout" | "connection_reset"
+        "connection_refused"
+        | "connection_timeout"
+        | "connection_reset"
         | "network_unreachable" => "high".to_string(),
         "tls_handshake" | "certificate_failure" | "tls_timeout" => "critical".to_string(),
         "http_error" => "medium".to_string(),

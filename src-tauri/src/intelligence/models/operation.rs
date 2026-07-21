@@ -53,11 +53,21 @@ pub struct NetworkOperationRecord {
     pub metadata_json: Option<String>,
 }
 
-fn default_source_type() -> String { "canireach_probe".to_string() }
-fn default_visibility() -> String { "application_instrumented".to_string() }
-fn default_failure_category() -> String { "unknown".to_string() }
-fn default_severity() -> String { "medium".to_string() }
-fn default_one() -> u32 { 1 }
+fn default_source_type() -> String {
+    "canireach_probe".to_string()
+}
+fn default_visibility() -> String {
+    "application_instrumented".to_string()
+}
+fn default_failure_category() -> String {
+    "unknown".to_string()
+}
+fn default_severity() -> String {
+    "medium".to_string()
+}
+fn default_one() -> u32 {
+    1
+}
 
 impl NetworkOperationRecord {
     pub fn dedup_key(&self) -> String {
@@ -65,7 +75,9 @@ impl NetworkOperationRecord {
             "{}|{}|{}|{}|{}",
             self.source_type,
             self.host.as_deref().unwrap_or(""),
-            self.destination_port.map(|p| p.to_string()).unwrap_or_default(),
+            self.destination_port
+                .map(|p| p.to_string())
+                .unwrap_or_default(),
             self.failure_category,
             self.operation_type,
         )

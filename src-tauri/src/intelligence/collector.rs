@@ -135,7 +135,11 @@ impl FailedRequestRegistry {
                     severity,
                     occurrence_count: 1,
                     first_seen_at: Some(dns.started_at.to_rfc3339()),
-                    last_seen_at: Some(dns.completed_at.map(|t| t.to_rfc3339()).unwrap_or_else(|| now.clone())),
+                    last_seen_at: Some(
+                        dns.completed_at
+                            .map(|t| t.to_rfc3339())
+                            .unwrap_or_else(|| now.clone()),
+                    ),
                     related_target_id: Some(target_id.clone()),
                     metadata_json: None,
                 };
@@ -188,7 +192,11 @@ impl FailedRequestRegistry {
                     severity,
                     occurrence_count: 1,
                     first_seen_at: Some(tcp.started_at.to_rfc3339()),
-                    last_seen_at: Some(tcp.completed_at.map(|t| t.to_rfc3339()).unwrap_or_else(|| now.clone())),
+                    last_seen_at: Some(
+                        tcp.completed_at
+                            .map(|t| t.to_rfc3339())
+                            .unwrap_or_else(|| now.clone()),
+                    ),
                     related_target_id: Some(target_id.clone()),
                     metadata_json: None,
                 };
@@ -238,7 +246,11 @@ impl FailedRequestRegistry {
                     severity,
                     occurrence_count: 1,
                     first_seen_at: Some(tls.started_at.to_rfc3339()),
-                    last_seen_at: Some(tls.completed_at.map(|t| t.to_rfc3339()).unwrap_or_else(|| now.clone())),
+                    last_seen_at: Some(
+                        tls.completed_at
+                            .map(|t| t.to_rfc3339())
+                            .unwrap_or_else(|| now.clone()),
+                    ),
                     related_target_id: Some(target_id.clone()),
                     metadata_json: None,
                 };
@@ -288,7 +300,11 @@ impl FailedRequestRegistry {
                     severity,
                     occurrence_count: 1,
                     first_seen_at: Some(http.started_at.to_rfc3339()),
-                    last_seen_at: Some(http.completed_at.map(|t| t.to_rfc3339()).unwrap_or_else(|| now.clone())),
+                    last_seen_at: Some(
+                        http.completed_at
+                            .map(|t| t.to_rfc3339())
+                            .unwrap_or_else(|| now.clone()),
+                    ),
                     related_target_id: Some(target_id.clone()),
                     metadata_json: None,
                 };
@@ -301,20 +317,46 @@ impl FailedRequestRegistry {
 }
 
 fn extract_simple_domain(url: &str) -> String {
-    let stripped = url.trim_start_matches("http://").trim_start_matches("https://");
-    stripped.split('/').next().unwrap_or(stripped)
-        .split(':').next().unwrap_or(stripped)
+    let stripped = url
+        .trim_start_matches("http://")
+        .trim_start_matches("https://");
+    stripped
+        .split('/')
+        .next()
+        .unwrap_or(stripped)
+        .split(':')
+        .next()
+        .unwrap_or(stripped)
         .to_string()
 }
 
 fn classify_failure_from_stage(stage: &str, status: &str) -> String {
     match stage {
-        "dns" => if status == "timeout" { "dns_timeout" } else { "dns_failure" },
-        "tcp" => if status == "timeout" { "connection_timeout" } else { "connection_refused" },
+        "dns" => {
+            if status == "timeout" {
+                "dns_timeout"
+            } else {
+                "dns_failure"
+            }
+        }
+        "tcp" => {
+            if status == "timeout" {
+                "connection_timeout"
+            } else {
+                "connection_refused"
+            }
+        }
         "tls" => "tls_handshake",
-        "http" => if status == "timeout" { "connection_timeout" } else { "http_error" },
+        "http" => {
+            if status == "timeout" {
+                "connection_timeout"
+            } else {
+                "http_error"
+            }
+        }
         _ => "unknown",
-    }.to_string()
+    }
+    .to_string()
 }
 
 fn classify_severity_from_failure(category: &str) -> String {
@@ -324,5 +366,6 @@ fn classify_severity_from_failure(category: &str) -> String {
         "tls_handshake" => "critical",
         "http_error" => "medium",
         _ => "medium",
-    }.to_string()
+    }
+    .to_string()
 }

@@ -39,7 +39,10 @@ pub use investigation::{
     cancel_investigation, create_investigation, delete_investigation, get_investigation,
     list_investigations, start_investigation,
 };
-pub use operations::{add_domain_to_targets, clear_network_operations, get_domain_suggestions, get_network_operation, query_failed_requests, query_network_operations};
+pub use operations::{
+    add_domain_to_targets, clear_network_operations, get_domain_suggestions, get_network_operation,
+    query_failed_requests, query_network_operations,
+};
 pub use profiles::{
     create_network_profile, delete_network_profile, get_network_profiles,
     set_default_network_profile, update_network_profile,

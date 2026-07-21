@@ -26,13 +26,13 @@ use commands::{
     list_notifications, mark_all_notifications_as_read, mark_notification_as_read,
     pause_scheduled_monitoring, probe_all, probe_by_category, probe_one, query_failed_requests,
     query_monitoring_history, query_network_operations, query_performance_history,
-    query_privacy_assessments, record_webrtc_candidate, reset_application,
+    query_privacy_assessments, record_webrtc_candidate, reorder_targets, reset_application,
     resume_scheduled_monitoring, run_schedule_now, save_privacy_expectation, save_settings,
     set_default_network_profile, set_monitoring_schedule_enabled, set_target_enabled,
     start_analyzer, start_continuous_monitor, start_investigation, start_performance_run,
     start_privacy_assessment, start_traceroute, stop_analyzer, stop_continuous_monitor,
-    toggle_target_pin, reorder_targets, update_block_page_signature,
-    update_monitoring_schedule, update_network_profile, update_target, update_target_group,
+    toggle_target_pin, update_block_page_signature, update_monitoring_schedule,
+    update_network_profile, update_target, update_target_group,
 };
 use tauri::Manager;
 
