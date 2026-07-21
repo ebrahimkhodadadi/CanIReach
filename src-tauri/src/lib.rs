@@ -24,7 +24,7 @@ use commands::{
     get_target_groups, get_targets, get_update_state, list_block_page_signatures,
     list_continuous_monitors, list_incidents, list_investigations, list_monitoring_schedules,
     list_notifications, mark_all_notifications_as_read, mark_notification_as_read,
-    pause_scheduled_monitoring, probe_all, probe_one, query_failed_requests,
+    pause_scheduled_monitoring, probe_all, probe_by_category, probe_one, query_failed_requests,
     query_monitoring_history, query_network_operations, query_performance_history,
     query_privacy_assessments, record_webrtc_candidate, reset_application,
     resume_scheduled_monitoring, run_schedule_now, save_privacy_expectation, save_settings,
@@ -248,6 +248,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_targets,
             probe_all,
+            probe_by_category,
             probe_one,
             cancel_probe,
             cancel_all_probes,

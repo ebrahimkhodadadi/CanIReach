@@ -77,6 +77,10 @@ export const probeAll = async (): Promise<ProbeResult[]> => {
   return invoke<ProbeResult[]>("probe_all");
 };
 
+export const probeByCategory = async (category: string): Promise<ProbeResult[]> => {
+  return invoke<ProbeResult[]>("probe_by_category", { category });
+};
+
 export const probeOne = async (targetId: string): Promise<ProbeResult> => {
   return invoke<ProbeResult>("probe_one", { targetId });
 };

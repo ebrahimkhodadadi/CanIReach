@@ -25,7 +25,7 @@ import {
   DotsSixVertical
 } from "@phosphor-icons/react";
 import { useActiveRuns } from "../../features/traceroute/store/selectors";
-import { useProbeActions } from "../../features/probes/store/selectors";
+import { useProbeActions, useProbingCategories } from "../../features/probes/store/selectors";
 import { useContinuousMonitorStore } from "../../features/continuous-monitor/store/continuousMonitorStore";
 import { ContinuousTestDialog } from "../../features/continuous-monitor/components/ContinuousTestDialog";
 import { ContinuousMonitorStatus } from "../../features/continuous-monitor/components/ContinuousMonitorStatus";
@@ -58,7 +58,8 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
   onTraceTarget,
 }) => {
   const activeRuns = useActiveRuns();
-  const { deleteTarget, duplicateTarget, toggleTargetEnabled, toggleTargetPin, reorderTargets, probeOne } = useProbeActions();
+  const { deleteTarget, duplicateTarget, toggleTargetEnabled, toggleTargetPin, reorderTargets, probeOne, probeByCategory } = useProbeActions();
+  const probingCategories = useProbingCategories();
 
   const [localSearch, setLocalSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -417,18 +418,30 @@ export const TargetGrid: React.FC<TargetGridProps> = ({
             <option value="UNKNOWN">Unknown</option>
           </select>
 
-          <select
-            value={catFilter}
-            onChange={(e) => setCatFilter(e.target.value)}
-            className="bg-[var(--color-bg-input)] border border-[var(--color-border-default)] rounded px-2.5 py-1.5 text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-border-strong)] cursor-pointer"
-          >
-            <option value="ALL">All Categories</option>
-            {categoryList.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <select
+              value={catFilter}
+              onChange={(e) => setCatFilter(e.target.value)}
+              className="bg-[var(--color-bg-input)] border border-[var(--color-border-default)] rounded px-2.5 py-1.5 text-xs text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-border-strong)] cursor-pointer"
+            >
+              <option value="ALL">All Categories</option>
+              {categoryList.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+            {catFilter !== "ALL" && (
+              <button
+                onClick={() => probeByCategory(catFilter)}
+                disabled={probingCategories[catFilter]}
+                className="px-2 py-1 bg-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary-hover)] disabled:opacity-50 text-white rounded text-[10px] font-bold cursor-pointer transition-colors flex items-center gap-1 whitespace-nowrap"
+              >
+                <Play size={10} weight="fill" className={probingCategories[catFilter] ? "animate-spin" : ""} />
+                {probingCategories[catFilter] ? "Testing..." : "Test Category"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

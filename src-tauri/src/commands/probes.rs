@@ -63,6 +63,74 @@ pub async fn probe_all(
 }
 
 #[tauri::command]
+pub async fn probe_by_category(
+    category: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<Vec<ProbeResult>, AppError> {
+    let all_targets = state.targets.lock().unwrap().clone();
+    let targets: Vec<_> = all_targets
+        .into_iter()
+        .filter(|t| t.category.as_deref() == Some(&category) && t.enabled)
+        .collect();
+
+    if targets.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let app_clone = app.clone();
+    let cancel_flag = Arc::new(AtomicBool::new(false));
+
+    {
+        let mut active = state
+            .active_probes
+            .lock()
+            .map_err(|e| AppError::Generic(format!("Failed to lock active probes map: {}", e)))?;
+        for target in &targets {
+            active.insert(target.id.clone(), cancel_flag.clone());
+        }
+    }
+
+    emit_probe_started(Some(&app_clone), &format!("category:{}", category), &format!("Testing category: {}", category));
+
+    let engine = state.engine.lock().await;
+    let results = engine
+        .probe_all(targets.clone(), cancel_flag.clone(), move |result| {
+            emit_probe_update(Some(&app_clone), result);
+        })
+        .await;
+    drop(engine);
+
+    {
+        let mut active = state
+            .active_probes
+            .lock()
+            .map_err(|e| AppError::Generic(format!("Failed to lock active probes map: {}", e)))?;
+        for target in &targets {
+            active.remove(&target.id);
+        }
+    }
+
+    if let Ok(conn) = crate::monitoring::persistence::DbManager::get_connection() {
+        for result in &results {
+            let profile_id = targets
+                .iter()
+                .find(|t| t.id == result.target_id)
+                .and_then(|t| t.network_profile_id.clone())
+                .unwrap_or_else(|| "system-default".to_string());
+            let _ = crate::intelligence::collector::FailedRequestRegistry::record_from_probe_result(
+                &conn,
+                result,
+                None,
+                &profile_id,
+            );
+        }
+    }
+
+    Ok(results)
+}
+
+#[tauri::command]
 pub async fn probe_one(
     app: AppHandle,
     state: State<'_, AppState>,

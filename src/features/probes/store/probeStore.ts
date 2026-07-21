@@ -19,6 +19,7 @@ import {
   deleteNetworkProfile,
   setDefaultNetworkProfile,
   probeAll,
+  probeByCategory,
   probeOne,
   cancelProbe,
   cancelAllProbes,
@@ -34,6 +35,7 @@ interface ProbeState {
   globalLogs: GlobalLogStep[];
   isProbingAll: boolean;
   probingTargets: Record<string, boolean>;
+  probingCategories: Record<string, boolean>;
   probeLoops: Record<string, { intervalMs: number; running: boolean; mode: "interval" | "until_success" }>;
   selectedTargetId: string | null;
   showGlobalLogs: boolean;
@@ -45,6 +47,7 @@ interface ProbeState {
 
   fetchTargets: () => Promise<void>;
   runProbeAll: () => Promise<void>;
+  runProbeByCategory: (category: string) => Promise<void>;
   runProbeOne: (targetId: string) => Promise<void>;
   stopProbeAll: () => Promise<void>;
   startProbeLoop: (targetId: string, intervalMs: number) => Promise<void>;
@@ -84,6 +87,7 @@ export const useProbeStore = create<ProbeState>((set, get) => ({
   globalLogs: [],
   isProbingAll: false,
   probingTargets: {},
+  probingCategories: {},
   probeLoops: {},
   selectedTargetId: null,
   showGlobalLogs: false,
@@ -103,7 +107,6 @@ export const useProbeStore = create<ProbeState>((set, get) => ({
 
   runProbeAll: async () => {
     const { targets } = get();
-    // Only probe targets that are enabled
     const enabledTargets = targets.filter(t => t.enabled);
     if (enabledTargets.length === 0) return;
 
@@ -123,6 +126,39 @@ export const useProbeStore = create<ProbeState>((set, get) => ({
       console.error("Store failed to probe all:", err);
     } finally {
       set({ isProbingAll: false });
+    }
+  },
+
+  runProbeByCategory: async (category) => {
+    const { targets } = get();
+    const categoryTargets = targets.filter(t => t.category === category && t.enabled);
+    if (categoryTargets.length === 0) return;
+
+    const probingState = categoryTargets.reduce((acc, t) => {
+      acc[t.id] = true;
+      return acc;
+    }, {} as Record<string, boolean>);
+
+    set((state) => ({
+      probingTargets: { ...state.probingTargets, ...probingState },
+      probingCategories: { ...state.probingCategories, [category]: true },
+    }));
+
+    try {
+      await probeByCategory(category);
+    } catch (err) {
+      console.error(`Store failed to probe category '${category}':`, err);
+    } finally {
+      set((state) => {
+        const newTargets = { ...state.probingTargets };
+        for (const t of categoryTargets) {
+          newTargets[t.id] = false;
+        }
+        return {
+          probingTargets: newTargets,
+          probingCategories: { ...state.probingCategories, [category]: false },
+        };
+      });
     }
   },
 

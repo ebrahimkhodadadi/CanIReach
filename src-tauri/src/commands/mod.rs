@@ -28,7 +28,7 @@ pub use history::{
     list_notifications, mark_all_notifications_as_read, mark_notification_as_read,
     query_monitoring_history,
 };
-pub use probes::{cancel_all_probes, cancel_probe, probe_all, probe_one};
+pub use probes::{cancel_all_probes, cancel_probe, probe_all, probe_by_category, probe_one};
 pub mod investigation;
 
 pub use block_page::{

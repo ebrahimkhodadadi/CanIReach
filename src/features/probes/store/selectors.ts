@@ -5,6 +5,7 @@ export const useProbeResults = () => useProbeStore((s) => s.probeResults);
 export const useGlobalLogs = () => useProbeStore((s) => s.globalLogs);
 export const useIsProbingAll = () => useProbeStore((s) => s.isProbingAll);
 export const useProbingTargets = () => useProbeStore((s) => s.probingTargets);
+export const useProbingCategories = () => useProbeStore((s) => s.probingCategories);
 export const useProbeLoops = () => useProbeStore((s) => s.probeLoops);
 export const useSelectedTargetId = () => useProbeStore((s) => s.selectedTargetId);
 export const useShowGlobalLogs = () => useProbeStore((s) => s.showGlobalLogs);
@@ -16,6 +17,7 @@ export const useActiveProfileId = () => useProbeStore((s) => s.activeProfileId);
 export const useProbeActions = () => {
   const fetchTargets = useProbeStore((s) => s.fetchTargets);
   const probeAll = useProbeStore((s) => s.runProbeAll);
+  const probeByCategory = useProbeStore((s) => s.runProbeByCategory);
   const probeOne = useProbeStore((s) => s.runProbeOne);
   const stopProbeAll = useProbeStore((s) => s.stopProbeAll);
   const startProbeLoop = useProbeStore((s) => s.startProbeLoop);
@@ -51,6 +53,7 @@ export const useProbeActions = () => {
   return {
     fetchTargets,
     probeAll,
+    probeByCategory,
     probeOne,
     stopProbeAll,
     startProbeLoop,
