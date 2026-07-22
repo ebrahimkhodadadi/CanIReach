@@ -81,6 +81,12 @@ struct SessionHandle {
     session: MonitorSession,
 }
 
+impl Default for ContinuousMonitorManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ContinuousMonitorManager {
     pub fn new() -> Self {
         Self {

@@ -1,6 +1,5 @@
 /// Simple domain extraction and normalization utilities.
 /// Does NOT use a full Public Suffix List — uses hardcoded common TLDs with fallback.
-
 /// Common registrable domain suffixes (2-part TLDs)
 const TWO_PART_TLDS: &[&str] = &[
     "co.uk", "co.jp", "co.kr", "co.nz", "co.za", "co.in", "com.au", "com.br", "com.cn", "com.co",
